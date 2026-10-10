@@ -11,6 +11,7 @@ import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
+import java.util.regex.Pattern
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var list: LinearLayout
@@ -18,6 +19,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var tts: TextToSpeech? = null
     private val selected = linkedSetOf<String>()
     private val prefs by lazy { getSharedPreferences("dashboardgit", MODE_PRIVATE) }
+    private val cache by lazy { getSharedPreferences("dashboardgit_cache", MODE_PRIVATE) }
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -27,7 +29,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val title=TextView(this).apply { text="● DashbordGit"; textSize=30f }
         val controls=LinearLayout(this)
         val settings=Button(this).apply { text="⚙ Projets"; setOnClickListener { chooseProjects() } }
-        val refresh=Button(this).apply { text="↻ Rafraîchir"; setOnClickListener { refreshSelected() } }
+        val refresh=Button(this).apply { text="🔄 ACTUALISER"; setOnClickListener { refreshSelected() } }
         controls.addView(settings); controls.addView(refresh)
         info=TextView(this).apply { text="Choisis les projets avec ⚙ puis appuie sur Rafraîchir."; textSize=18f; setPadding(0,20,0,20) }
         val scroll=ScrollView(this)
@@ -52,30 +54,88 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun refreshSelected() {
         if(selected.isEmpty()){ info.text="Sélectionne d'abord un ou plusieurs projets avec ⚙."; return }
-        info.text="Lecture GitHub en cours…"; list.removeAllViews()
+        info.text="Vérification des changements…"; list.removeAllViews()
         Thread {
             selected.forEach { repo ->
                 try {
-                    val runs=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/actions/runs?per_page=10","workflow_runs")
-                    val branches=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/branches?per_page=10")
-                    val latest=(0 until minOf(5,runs.length())).map { runs.getJSONObject(it) }
-                    val repoInfo=getJsonObject("https://api.github.com/repos/greenpower2669/$repo")
-                    val defaultBranch=repoInfo.optString("default_branch","main")
-                    val commits=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/commits?per_page=1")
-                    val releases=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/releases?per_page=1")
-                    val artifacts=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/actions/artifacts?per_page=30","artifacts")
-                    val latestPush=commits.optJSONObject(0)?.optJSONObject("commit")?.optJSONObject("committer")?.optString("date").orEmpty()
-                    val latestRelease=releases.optJSONObject(0)?.optString("published_at").orEmpty()
-                    val latestArtifact=(0 until artifacts.length()).map { artifacts.getJSONObject(it) }.filter { !it.optBoolean("expired",true) && (it.optString("name").contains("apk",true) || it.optString("name").contains("aab",true)) }.maxByOrNull { it.optString("created_at") }
-                    var mergeNeeded=false
-                    (0 until branches.length()).map { branches.getJSONObject(it).optString("name") }.filter { it.isNotBlank() && it!=defaultBranch }.take(10).forEach { b ->
-                        try { if(getJsonObject("https://api.github.com/repos/greenpower2669/$repo/compare/$defaultBranch...$b").optInt("ahead_by",0)>0) mergeNeeded=true } catch(_:Exception){}
+                    val cached=loadSnapshot(repo)
+                    val publicRunId=scrapeLatestRunId(repo)
+                    if(cached!=null && publicRunId!=null && publicRunId==cached.optLong("runId",-1L)) {
+                        runOnUiThread { renderSnapshot(cached, true) }
+                    } else {
+                        val fresh=scanRepo(repo)
+                        saveSnapshot(repo,fresh)
+                        runOnUiThread { renderSnapshot(fresh, false) }
                     }
-                    runOnUiThread { addRepo(repo,branches.length(),latest,isNewer(latestPush,latestArtifact?.optString("created_at").orEmpty()),mergeNeeded,isNewer(latestPush,latestRelease),latestArtifact?.optString("name")) }
-                } catch(e:Exception){ runOnUiThread { addCard("🟡 $repo","Données indisponibles : ${e.message}") } }
+                } catch(e:Exception){
+                    val cached=loadSnapshot(repo)
+                    runOnUiThread {
+                        if(cached!=null) renderSnapshot(cached, true)
+                        else addCard("🟡 $repo","Données indisponibles : ${e.message}")
+                    }
+                }
             }
-            runOnUiThread { info.text="Rafraîchissement terminé. Touchez une carte pour l'entendre." }
+            runOnUiThread { info.text="Actualisation terminée. Les projets inchangés ont été servis depuis la mémoire locale." }
         }.start()
+    }
+
+    private fun scanRepo(repo:String):JSONObject {
+        val runs=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/actions/runs?per_page=5","workflow_runs")
+        val branches=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/branches?per_page=10")
+        val repoInfo=getJsonObject("https://api.github.com/repos/greenpower2669/$repo")
+        val defaultBranch=repoInfo.optString("default_branch","main")
+        val commits=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/commits?per_page=1")
+        val releases=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/releases?per_page=1")
+        val artifacts=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/actions/artifacts?per_page=30","artifacts")
+        val latestPush=commits.optJSONObject(0)?.optJSONObject("commit")?.optJSONObject("committer")?.optString("date").orEmpty()
+        val latestRelease=releases.optJSONObject(0)?.optString("published_at").orEmpty()
+        val latestArtifact=(0 until artifacts.length()).map { artifacts.getJSONObject(it) }
+            .filter { !it.optBoolean("expired",true) && (it.optString("name").contains("apk",true) || it.optString("name").contains("aab",true)) }
+            .maxByOrNull { it.optString("created_at") }
+        var mergeNeeded=false
+        (0 until branches.length()).map { branches.getJSONObject(it).optString("name") }
+            .filter { it.isNotBlank() && it!=defaultBranch }.take(10).forEach { b ->
+                try { if(getJsonObject("https://api.github.com/repos/greenpower2669/$repo/compare/$defaultBranch...$b").optInt("ahead_by",0)>0) mergeNeeded=true } catch(_:Exception){}
+            }
+        return JSONObject().apply {
+            put("repo",repo); put("branchCount",branches.length())
+            put("buildNeeded",isNewer(latestPush,latestArtifact?.optString("created_at").orEmpty()))
+            put("mergeNeeded",mergeNeeded); put("releaseNeeded",isNewer(latestPush,latestRelease))
+            put("artifactName",latestArtifact?.optString("name") ?: "")
+            put("runId",runs.optJSONObject(0)?.optLong("id",-1L) ?: -1L)
+            put("runs",runs); put("savedAt",System.currentTimeMillis())
+        }
+    }
+
+    private fun renderSnapshot(s:JSONObject, fromCache:Boolean) {
+        val repo=s.optString("repo")
+        val runs=s.optJSONArray("runs") ?: JSONArray()
+        val latest=(0 until minOf(5,runs.length())).map { runs.getJSONObject(it) }
+        addRepo(repo,s.optInt("branchCount"),latest,s.optBoolean("buildNeeded"),s.optBoolean("mergeNeeded"),s.optBoolean("releaseNeeded"),s.optString("artifactName").ifBlank { null })
+        if(fromCache) {
+            val age=((System.currentTimeMillis()-s.optLong("savedAt",System.currentTimeMillis()))/60000L).coerceAtLeast(0)
+            addCacheNote(repo,age)
+        }
+    }
+
+    private fun addCacheNote(repo:String, age:Long) {
+        val note=TextView(this).apply { text="💾 $repo : état local confirmé, inchangé · ${age} min"; textSize=14f; setPadding(18,4,18,10) }
+        list.addView(note)
+    }
+
+    private fun saveSnapshot(repo:String,s:JSONObject){ cache.edit().putString("snapshot_$repo",s.toString()).apply() }
+    private fun loadSnapshot(repo:String):JSONObject? = try { cache.getString("snapshot_$repo",null)?.let { JSONObject(it) } } catch(_:Exception){ null }
+
+    private fun scrapeLatestRunId(repo:String):Long? {
+        val c=(URL("https://github.com/greenpower2669/$repo/actions").openConnection() as HttpURLConnection).apply {
+            setRequestProperty("User-Agent","DashbordGit/0.2 Android")
+            setRequestProperty("Accept","text/html")
+            connectTimeout=10000; readTimeout=15000
+        }
+        if(c.responseCode !in 200..299) return null
+        val html=c.inputStream.bufferedReader().use { it.readText() }
+        val m=Pattern.compile("/greenpower2669/"+Pattern.quote(repo)+"/actions/runs/(\\d+)").matcher(html)
+        return if(m.find()) m.group(1)?.toLongOrNull() else null
     }
 
     private fun addRepo(repo:String, branchCount:Int, runs:List<JSONObject>, buildNeeded:Boolean, mergeNeeded:Boolean, releaseNeeded:Boolean, artifactName:String?) {
