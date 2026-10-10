@@ -82,37 +82,29 @@ class KokoroSpeech(
 
                 val voice = FRENCH_SIWIS_SID
                 if (sid != voice) onDebug("Kokoro : SID demandé $sid ignoré, ff_siwis=30 imposée")
-                val player = createTrack(tts.sampleRate())
-                track = player
-                player.play()
-                onDebug("Kokoro : génération streaming française ff_siwis (SID 30)")
+                onDebug("Kokoro : génération française ff_siwis (SID 30), mode non-streaming stable")
 
-                val generated = tts.generateWithConfigAndCallback(
+                val generated = tts.generateWithConfig(
                     text = text,
                     config = GenerationConfig(
                         sid = voice,
                         speed = 1.0f,
                         silenceScale = 0.2f
                     )
-                ) { samples ->
-                    if (mine != requestId.get()) {
-                        0
-                    } else {
-                        val written = player.write(
-                            samples, 0, samples.size, AudioTrack.WRITE_BLOCKING
-                        )
-                        if (written > 0) 1 else 0
-                    }
+                )
+
+                if (mine != requestId.get()) {
+                    onDebug("Kokoro : parole précédente annulée après génération")
+                    return@execute
                 }
+                require(generated.samples.isNotEmpty()) { "Kokoro n'a généré aucun son" }
+                onDebug("Kokoro : audio généré, ${generated.samples.size} échantillons")
+
+                playSamples(generated.samples, generated.sampleRate, mine)
 
                 if (mine == requestId.get()) {
-                    onDebug("Kokoro : parole terminée, ${generated.samples.size} échantillons finaux")
-                } else {
-                    onDebug("Kokoro : parole précédente annulée")
+                    onDebug("Kokoro : parole terminée")
                 }
-                if (track === player) track = null
-                runCatching { player.stop() }
-                player.release()
             } catch (t: Throwable) {
                 if (mine != requestId.get()) {
                     onDebug("Kokoro : génération annulée")
@@ -122,6 +114,22 @@ class KokoroSpeech(
                 onFailure(t)
             }
         }
+    }
+
+    private fun playSamples(samples: FloatArray, sampleRate: Int, mine: Int) {
+        val player = createTrack(sampleRate)
+        track = player
+        player.play()
+        var offset = 0
+        while (offset < samples.size && mine == requestId.get()) {
+            val count = minOf(4096, samples.size - offset)
+            val written = player.write(samples, offset, count, AudioTrack.WRITE_BLOCKING)
+            if (written <= 0) error("Lecture audio Kokoro impossible ($written)")
+            offset += written
+        }
+        if (track === player) track = null
+        runCatching { player.stop() }
+        player.release()
     }
 
     private fun createTrack(sampleRate: Int): AudioTrack {
