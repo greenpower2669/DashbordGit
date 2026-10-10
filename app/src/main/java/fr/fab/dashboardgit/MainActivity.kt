@@ -21,7 +21,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var list: LinearLayout
     private lateinit var info: TextView
     private var tts: TextToSpeech? = null
-    private var pierre: PierrePiperSpeech? = null
+    private var supertonic: Supertonic3Speech? = null
     private val selected = linkedSetOf<String>()
     private val debugEvents=mutableListOf<String>()
     private fun debug(msg:String) {
@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         tts = TextToSpeech(this,this)
-        pierre = PierrePiperSpeech(this) { debug(it) }
+        supertonic = Supertonic3Speech(this) { debug(it) }
         selected.addAll(prefs.getStringSet("selected_repos", emptySet()) ?: emptySet())
         val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(28,28,28,28) }
         val title=TextView(this).apply { text="● DashbordGit"; textSize=30f }
@@ -57,7 +57,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         extras.addView(Button(this).apply { text="💾 EXPORTER SAUVEGARDE"; setOnClickListener { exportFile(101) } })
         extras.addView(Button(this).apply { text="📥 IMPORTER SAUVEGARDE"; setOnClickListener { importFile() } })
         extras.addView(Button(this).apply { text="🧾 EXPORTER JOURNAL DEBUG"; setOnClickListener { exportFile(102) } })
-        extras.addView(Button(this).apply { text="🔊 VOIX PIERRE / PIPER"; setOnClickListener { chooseVoice() } })
+        extras.addView(Button(this).apply { text="🎙 SUPERTONIC 3 — VOIX"; setOnClickListener { chooseVoice() } })
+        extras.addView(Button(this).apply { text="🎲 SUPERTONIC 3 — SEED"; setOnClickListener { chooseSeed() } })
         info=TextView(this).apply { text="Choisis les projets avec ⚙ puis appuie sur ACTUALISER."; textSize=18f; setPadding(0,20,0,20) }
         val scroll=ScrollView(this)
         list=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
@@ -220,10 +221,62 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
 
     private fun chooseVoice() {
-        debug("Test voix Pierre / Piper fr_FR-upmc-medium, SID 1")
-        info.text="Voix Pierre — Piper UPMC Medium. Test en cours…"
-        speak("Bonjour. Je suis Pierre, la voix française de DashbordGit.")
+        val labels=Array(10) { "Voix Supertonic " + it }
+        val current=prefs.getInt("supertonic_sid",0).coerceIn(0,9)
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Supertonic 3 — choisir la voix")
+            .setSingleChoiceItems(labels,current) { dialog,index ->
+                prefs.edit().putInt("supertonic_sid",index).apply()
+                debug("Supertonic 3 : voix SID $index sélectionnée")
+                info.text="Supertonic 3 — voix $index. Seed : "+prefs.getInt("supertonic_seed",-1)+". Test en cours…"
+                dialog.dismiss()
+                speak("Bonjour. Ceci est la voix numéro $index de Supertonic 3.")
+            }
+            .setNegativeButton("ANNULER",null)
+            .show()
     }
+
+    private fun chooseSeed() {
+        val presets=intArrayOf(-1,0,1,2,3,4,5,7,10,42,67,123,2026)
+        val labels=presets.map { if(it==-1) "Aléatoire — seed -1" else "Seed $it" }.toTypedArray()
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Supertonic 3 — explorer les seeds")
+            .setItems(labels) { _,index ->
+                setSeedAndTest(presets[index])
+            }
+            .setPositiveButton("SAISIR UNE SEED") { _,_ ->
+                val input=EditText(this).apply {
+                    inputType=android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_SIGNED
+                    hint="-1 à 2147483647"
+                    textSize=22f
+                    setPadding(24,24,24,24)
+                }
+                android.app.AlertDialog.Builder(this)
+                    .setTitle("Seed Supertonic")
+                    .setView(input)
+                    .setPositiveButton("TESTER") { _,_ ->
+                        val value=input.text.toString().trim().toIntOrNull()
+                        if(value==null) {
+                            info.text="Seed invalide."
+                        } else {
+                            setSeedAndTest(value)
+                        }
+                    }
+                    .setNegativeButton("ANNULER",null)
+                    .show()
+            }
+            .setNegativeButton("ANNULER",null)
+            .show()
+    }
+
+    private fun setSeedAndTest(seed:Int) {
+        prefs.edit().putInt("supertonic_seed",seed).apply()
+        val sid=prefs.getInt("supertonic_sid",0).coerceIn(0,9)
+        debug("Supertonic 3 : seed $seed sélectionnée pour SID $sid")
+        info.text="Supertonic 3 — voix $sid — seed $seed. Test en cours…"
+        speak("Bonjour. Test de Supertonic 3, voix $sid, avec la seed $seed.")
+    }
+
     private fun exportFile(code:Int) {
         val name=if(code==101) "DashbordGit-sauvegarde.json" else "DashbordGit-journal-debug.txt"
         val mime=if(code==101) "application/json" else "text/plain"
@@ -248,6 +301,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     selected.forEach { name -> loadSnapshot(name)?.let { snapshots.put(name,it) } }
                     val backup=JSONObject().put("format","dashboardgit-backup-v1")
                         .put("selected",JSONArray(selected.toList())).put("snapshots",snapshots)
+                        .put("supertonicSid",prefs.getInt("supertonic_sid",0))
+                        .put("supertonicSeed",prefs.getInt("supertonic_seed",-1))
                         
                     contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(backup.toString(2)) }
                     debug("Sauvegarde exportée")
@@ -272,6 +327,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     editor.apply()
                     selected.clear(); selected.addAll(names)
                     prefs.edit().putStringSet("selected_repos",selected.toSet()).apply()
+                    prefs.edit()
+                        .putInt("supertonic_sid",backup.optInt("supertonicSid",0).coerceIn(0,9))
+                        .putInt("supertonic_seed",backup.optInt("supertonicSeed",-1))
+                        .apply()
                     list.removeAllViews()
                     selected.mapNotNull { loadSnapshot(it) }.sortedByDescending { it.optLong("savedAt") }.forEach { renderSnapshot(it,true) }
                     debug("Sauvegarde importée : ${selected.size} projets")
@@ -282,18 +341,20 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun speak(s:String) {
-        val engine=pierre
+        val sid=prefs.getInt("supertonic_sid",0).coerceIn(0,9)
+        val seed=prefs.getInt("supertonic_seed",-1)
+        val engine=supertonic
         if(engine==null) {
             tts?.speak(s,TextToSpeech.QUEUE_FLUSH,null,"card")
             return
         }
-        engine.speak(s) { error ->
-            debug("Pierre/Piper indisponible, secours Android : "+error.message)
+        engine.speak(s,sid,seed) { error ->
+            debug("Supertonic 3 indisponible, secours Android : "+error.message)
             runOnUiThread { tts?.speak(s,TextToSpeech.QUEUE_FLUSH,null,"card") }
         }
     }
     override fun onInit(status:Int){ if(status==TextToSpeech.SUCCESS) tts?.language=Locale.FRANCE }
-    override fun onDestroy(){ pierre?.close(); tts?.shutdown(); super.onDestroy() }
+    override fun onDestroy(){ supertonic?.close(); tts?.shutdown(); super.onDestroy() }
 
     private fun getJsonArray(url:String,key:String?=null):JSONArray {
         val c=(URL(url).openConnection() as HttpURLConnection).apply { setRequestProperty("Accept","application/vnd.github+json"); setRequestProperty("User-Agent","DashbordGit-Android"); setRequestProperty("X-GitHub-Api-Version","2022-11-28"); connectTimeout=10000; readTimeout=15000 }
