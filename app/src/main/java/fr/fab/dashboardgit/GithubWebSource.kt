@@ -116,6 +116,26 @@ class GithubWebSource(private val log:(String)->Unit) {
         return result
     }
 
+    private fun complementWithPublicWeb(repo:String,snapshot:JSONObject) {
+        val home=runCatching { read("https://github.com/"+owner+"/"+repo) }.getOrNull()
+        if(home!=null) {
+            // SHA visible on the public repository page, without REST consumption.
+            val sha=Regex("/"+owner+"/"+Regex.escape(repo)+"/commit/([0-9a-fA-F]{40})")
+                .find(home)?.groupValues?.getOrNull(1)
+            if(!sha.isNullOrBlank()) snapshot.put("latestCommit",sha)
+            val updated=Regex("""<relative-time[^>]*datetime=["']([^"']+)["']""")
+                .find(home)?.groupValues?.getOrNull(1)
+            if(!updated.isNullOrBlank()) snapshot.put("webCommitTime",updated)
+        }
+        // No fabricated branch count / merge verdict if HTML is too dynamic.
+        val releasePage=runCatching { read("https://github.com/"+owner+"/"+repo+"/releases") }.getOrNull()
+        if(releasePage!=null) {
+            val tag=Regex("/"+owner+"/"+Regex.escape(repo)+"/releases/tag/([A-Za-z0-9._%+-]+)")
+                .find(releasePage)?.groupValues?.getOrNull(1)
+            if(!tag.isNullOrBlank()) snapshot.put("latestRelease",tag)
+        }
+    }
+
     fun inspect(repo:String):JSONObject {
         require(legalName.matches(repo)) { "Invalid repository name" }
         val snapshot=JSONObject()
@@ -136,6 +156,7 @@ class GithubWebSource(private val log:(String)->Unit) {
             snapshot.put("runs",runList)
             if(runList.length()>0) snapshot.put("runId",runList.optJSONObject(0)?.optLong("id",-1L) ?: -1L)
         }
+        complementWithPublicWeb(repo,snapshot)
         val webRuns=readActionRuns(repo)
         if(webRuns.length()>0) {
             val webId=webRuns.optJSONObject(0)?.optLong("id",-1L) ?: -1L
