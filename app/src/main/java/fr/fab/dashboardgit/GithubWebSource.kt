@@ -119,6 +119,22 @@ class GithubWebSource(private val log:(String)->Unit) {
                 .find(home)?.groupValues?.getOrNull(1)
             if(!updated.isNullOrBlank()) snapshot.put("webCommitTime",updated)
         }
+        // This is a count of branches VISIBLE in the public HTML, not the
+        // repository's guaranteed full number of branches.
+        val branchPage=runCatching { read("https://github.com/"+owner+"/"+repo+"/branches") }.getOrNull()
+        if(branchPage!=null) {
+            val branchPattern=Regex("/"+owner+"/"+Regex.escape(repo)+"/tree/([A-Za-z0-9_.%/-]+)")
+            val names=branchPattern.findAll(branchPage)
+                .map {
+                    java.net.URLDecoder.decode(it.groupValues[1].replace("+","%2B"),"UTF-8")
+                }
+                .filter { it.isNotBlank() && !it.contains("..") && it.length<=200 }
+                .distinct().take(20).toList()
+            if(names.isNotEmpty()) {
+                snapshot.put("webBranches",JSONArray(names))
+                if(snapshot.optInt("branchCount",-1)<0) snapshot.put("branchCount",names.size)
+            }
+        }
         // No fabricated branch count / merge verdict if HTML is too dynamic.
         val releasePage=runCatching { read("https://github.com/"+owner+"/"+repo+"/releases") }.getOrNull()
         if(releasePage!=null) {
