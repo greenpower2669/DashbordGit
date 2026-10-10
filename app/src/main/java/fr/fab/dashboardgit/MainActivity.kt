@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var supertonic: Supertonic3Speech? = null
     private lateinit var quotaLabel: TextView
     private lateinit var quotaProgress: ProgressBar
-    private val webSource by lazy { GithubWebSource { debug(it) } }
+    private val webSource by lazy { GithubWebSource(this) { debug(it) } }
     private val selected = linkedSetOf<String>()
     private val debugEvents=mutableListOf<String>()
     private fun debug(msg:String) {
@@ -359,52 +359,78 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             info.text="Sélectionne d'abord des projets dans ⚙ PARAMÈTRES."
             return
         }
-        info.text="Lecture Web en cours…"
+        info.text="Lecture des sources Web en cours…"
         list.removeAllViews()
-        debug("ACTUALISER : "+selected.size+" projets, réseau Web sur action utilisateur")
+        debug("ACTUALISER : "+selected.size+" projets, réseau sur commande manuelle")
         Thread {
             var failures=0
+            var confirmed=0
+            var unknown=0
+            var usedApi=0
             selected.forEach { repo ->
                 try {
                     val snapshot=webSource.inspect(repo)
-                    val runs=snapshot.optJSONArray("runs")
-                    val latest=runs?.optJSONObject(0)
                     val jsonDate=snapshot.optString("jsonUpdatedAt","")
                     val jsonAge=try {
                         System.currentTimeMillis()-Instant.parse(jsonDate).toEpochMilli()
                     } catch(_:Exception) { Long.MAX_VALUE }
-                    val jsonStale=snapshot.optString("source")=="JSON" && jsonAge>5*60*1000L
-                    val incomplete=latest==null || latest.optString("status")=="unknown" || jsonStale
-                    if(incomplete && permitApi("runs","Confirmer le dernier build du dépôt "+repo)) {
+                    val jsonStale=snapshot.optString("source")=="JSON" &&
+                        (jsonAge<0 || jsonAge>5*60*1000L)
+                    val incomplete=snapshot.optBoolean("needsStatusConfirmation",true) || jsonStale
+                    if(incomplete && permitApi("runs",
+                            "Confirmer le dernier build du projet "+repo+
+                            " (Web incomplet ou JSON ancien)",1)) {
                         try {
-                            val response=readApi("https://api.github.com/repos/greenpower2669/"+repo+"/actions/runs?per_page=5")
+                            val response=readApi(
+                                "https://api.github.com/repos/greenpower2669/"+
+                                repo+"/actions/runs?per_page=5")
                             val apiRuns=response.optJSONArray("workflow_runs") ?: JSONArray()
                             if(apiRuns.length()>0) {
-                                snapshot.put("runs",apiRuns).put("runId",apiRuns.optJSONObject(0)?.optLong("id",-1L) ?: -1L)
+                                snapshot.put("runs",apiRuns)
+                                    .put("runId",apiRuns.optJSONObject(0)?.optLong("id",-1L) ?: -1L)
                                     .put("source","API")
+                                    .put("needsStatusConfirmation",false)
+                                usedApi++
+                            } else {
+                                debug("API "+repo+" : aucun build retourné")
                             }
-                        } catch(e:Exception) { debug("API "+repo+" : "+e.message) }
+                        } catch(e:Exception) {
+                            debug("API "+repo+" : "+e.message)
+                        }
                     }
+                    val latest=snapshot.optJSONArray("runs")?.optJSONObject(0)
+                    val status=if(latest==null) "unknown" else latest.optString("status","unknown")
+                    val conclusion=latest?.optString("conclusion","").orEmpty()
+                    val verified=when(status) {
+                        "queued","pending","waiting","requested","in_progress" -> true
+                        "completed" -> conclusion in setOf("success","failure","cancelled",
+                            "timed_out","action_required","skipped","neutral","startup_failure")
+                        else -> false
+                    }
+                    if(verified) confirmed++ else unknown++
                     saveSnapshot(repo,snapshot)
                     runOnUiThread { renderSnapshot(snapshot,false) }
                 } catch(e:Exception) {
                     failures++
+                    unknown++
                     debug("Actualisation "+repo+" : "+e.message)
                     val cached=loadSnapshot(repo)
                     runOnUiThread {
                         if(cached!=null) renderSnapshot(cached,true)
-                        else addCard("⚪ "+repo,"Sources indisponibles : état non vérifié.")
+                        else addCard("⚪ "+repo,
+                            "Sources indisponibles : état non vérifié, aucune réussite supposée.")
                     }
                 }
             }
             runOnUiThread {
-                info.text=if(failures==0) "Actualisation terminée. Les données non prouvées restent grisées."
-                    else "Actualisation partielle ("+failures+" erreur(s)). Cache local conservé."
+                info.text="Actualisation terminée : "+confirmed+" état(s) identifié(s), "+
+                    unknown+" inconnu(s), "+usedApi+" complément(s) API, "+
+                    failures+" erreur(s)."
+                if(unknown>0) info.append(
+                    "\nPour compléter les états gris : ⚙ PARAMÈTRES → Mode Web / API → Demander.")
             }
         }.start()
     }
-
-
 
     private fun renderSnapshot(s:JSONObject,fromCache:Boolean) {
         val repo=s.optString("repo","Projet")
@@ -490,18 +516,31 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val spoken=repo+" : dernier build "+state+". "+
             if(actions.isEmpty()) "Autres opérations non confirmées." else actions.joinToString(". ")
         addCard(dot+" "+repo+" — "+displayedState,body,spoken)
-        runs.forEach { run ->
+        // A compact list is especially helpful on small screens with zoom.
+        // Do not repeat five identical grey cards when the Web cannot prove status.
+        val anyKnown=runs.any { runStatusText(it).first!="⚪" }
+        val shown=if(anyKnown) runs.take(3) else runs.take(1)
+        shown.forEach { run ->
             val (symbol,label)=runStatusText(run)
-            val message=run.optJSONObject("head_commit")?.optString("message")?.lineSequence()?.firstOrNull()
-                ?.ifBlank { "Message indisponible" } ?: "Message du commit indisponible"
+            val message=run.optJSONObject("head_commit")?.optString("message")
+                ?.lineSequence()?.firstOrNull()?.ifBlank { "Message non disponible" }
+                ?: "Message du commit non disponible"
             val branch=run.optString("head_branch").ifBlank { "non précisée" }
             val url=run.optString("html_url").ifBlank {
                 val id=run.optLong("id",-1L)
                 if(id>0) "https://github.com/greenpower2669/"+repo+"/actions/runs/"+id else ""
             }
-            addCard(symbol+" "+label+" — "+run.optString("name","GitHub Actions"),
-                "Branche : "+branch+"\n"+message+"\nAppui long : ouvrir GitHub",
+            val shortId=run.optLong("id",-1L)
+            val runName=run.optString("name","GitHub Actions")
+            val title=symbol+" "+label+" — "+runName+
+                if(shortId>0) " #"+shortId else ""
+            addCard(title,"Branche : "+branch+"\n"+message+"\nAppui long : ouvrir GitHub",
                 null,url)
+        }
+        if(shown.size<runs.size) {
+            addCard("ℹ️ Historique condensé",
+                (runs.size-shown.size).toString()+" autre(s) build(s) détecté(s). "+
+                "Les résultats sans preuve restent inconnus.")
         }
         if(runs.isEmpty()) addCard("⚪ ÉTAT INCONNU","Le Web n'a pas fourni de résultat fiable. Utilise l'API autorisée pour confirmer.")
         list=oldList
@@ -515,8 +554,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             setPadding(24,24,24,24)
             gravity=Gravity.START
             setOnClickListener { speak(voice ?: text.toString()) }
-            if(!url.isNullOrBlank()) setOnLongClickListener {
-                startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))
+            val safeUrl=if(url.isNullOrBlank()) null else runCatching { Uri.parse(url) }.getOrNull()
+                ?.takeIf { it.scheme=="https" && it.host=="github.com" }
+            if(safeUrl!=null) setOnLongClickListener {
+                startActivity(Intent(Intent.ACTION_VIEW,safeUrl))
                 true
             }
         }
