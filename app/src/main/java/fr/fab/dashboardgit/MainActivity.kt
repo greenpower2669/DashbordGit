@@ -369,7 +369,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     val snapshot=webSource.inspect(repo)
                     val runs=snapshot.optJSONArray("runs")
                     val latest=runs?.optJSONObject(0)
-                    val incomplete=latest==null || latest.optString("status")=="unknown"
+                    val jsonDate=snapshot.optString("jsonUpdatedAt","")
+                    val jsonAge=try {
+                        System.currentTimeMillis()-Instant.parse(jsonDate).toEpochMilli()
+                    } catch(_:Exception) { Long.MAX_VALUE }
+                    val jsonStale=snapshot.optString("source")=="JSON" && jsonAge>5*60*1000L
+                    val incomplete=latest==null || latest.optString("status")=="unknown" || jsonStale
                     if(incomplete && permitApi("runs","Confirmer le dernier build du dépôt "+repo)) {
                         try {
                             val response=readApi("https://api.github.com/repos/greenpower2669/"+repo+"/actions/runs?per_page=5")
@@ -457,6 +462,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         })
         val latest=runs.firstOrNull()
         val (dot,state)=if(latest!=null) runStatusText(latest) else "⚪" to "AUCUN BUILD VÉRIFIÉ"
+        val displayedState=if(source=="JSON" || source=="CACHE") "DERNIER CONNU — "+state else state
         val actions=mutableListOf<String>()
         if(snapshot.optBoolean("buildKnown") && snapshot.optBoolean("buildNeeded")) actions.add("APK/AAB à reconstruire")
         if(snapshot.optBoolean("mergeKnown") && snapshot.optBoolean("mergeNeeded")) actions.add("merge à faire")
@@ -476,7 +482,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val body=branches+"\n"+follow+artifactText+"\nSource : "+source+age
         val spoken=repo+" : dernier build "+state+". "+
             if(actions.isEmpty()) "Autres opérations non confirmées." else actions.joinToString(". ")
-        addCard(dot+" "+repo+" — "+state,body,spoken)
+        addCard(dot+" "+repo+" — "+displayedState,body,spoken)
         runs.forEach { run ->
             val (symbol,label)=runStatusText(run)
             val message=run.optJSONObject("head_commit")?.optString("message")?.lineSequence()?.firstOrNull()
