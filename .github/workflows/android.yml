@@ -17,6 +17,30 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Cache Sherpa-ONNX and Kokoro
+        uses: actions/cache@v4
+        with:
+          path: .ci-cache
+          key: sherpa-onnx-1.13.8-kokoro-int8-multi-lang-v1_1
+      - name: Bundle Sherpa-ONNX + Kokoro French locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-cache app/libs app/src/main/assets
+          AAR=.ci-cache/sherpa-onnx-1.13.8.aar
+          MODEL=.ci-cache/kokoro-int8-multi-lang-v1_1.tar.bz2
+          test -f "$AAR" || curl -fL --retry 4 --retry-delay 3 -o "$AAR" https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-1.13.8.aar
+          test -f "$MODEL" || curl -fL --retry 4 --retry-delay 3 -o "$MODEL" https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-int8-multi-lang-v1_1.tar.bz2
+          cp "$AAR" app/libs/sherpa-onnx-1.13.8.aar
+          rm -rf app/src/main/assets/kokoro-int8-multi-lang-v1_1 /tmp/kokoro-int8-multi-lang-v1_1
+          tar -xjf "$MODEL" -C /tmp
+          mkdir -p app/src/main/assets/kokoro-int8-multi-lang-v1_1
+          cp /tmp/kokoro-int8-multi-lang-v1_1/model.int8.onnx app/src/main/assets/kokoro-int8-multi-lang-v1_1/
+          cp /tmp/kokoro-int8-multi-lang-v1_1/voices.bin app/src/main/assets/kokoro-int8-multi-lang-v1_1/
+          cp /tmp/kokoro-int8-multi-lang-v1_1/tokens.txt app/src/main/assets/kokoro-int8-multi-lang-v1_1/
+          cp /tmp/kokoro-int8-multi-lang-v1_1/LICENSE app/src/main/assets/kokoro-int8-multi-lang-v1_1/
+          cp -a /tmp/kokoro-int8-multi-lang-v1_1/espeak-ng-data app/src/main/assets/kokoro-int8-multi-lang-v1_1/
+          du -sh app/src/main/assets/kokoro-int8-multi-lang-v1_1 app/libs/sherpa-onnx-1.13.8.aar
       - run: gradle :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
