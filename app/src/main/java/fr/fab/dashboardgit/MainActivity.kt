@@ -17,10 +17,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var info: TextView
     private var tts: TextToSpeech? = null
     private val selected = linkedSetOf<String>()
+    private val prefs by lazy { getSharedPreferences("dashboardgit", MODE_PRIVATE) }
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         tts = TextToSpeech(this, this)
+        selected.addAll(prefs.getStringSet("selected_repos", emptySet()) ?: emptySet())
         val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(28,28,28,28) }
         val title=TextView(this).apply { text="● DashbordGit"; textSize=30f }
         val controls=LinearLayout(this)
@@ -43,7 +45,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 val checked=BooleanArray(names.size){ selected.contains(names[it]) }
                 android.app.AlertDialog.Builder(this).setTitle("Projets à surveiller")
                     .setMultiChoiceItems(names.toTypedArray(),checked){_,i,on-> if(on)selected.add(names[i]) else selected.remove(names[i]) }
-                    .setPositiveButton("OK"){_,_-> info.text="${selected.size} projet(s) sélectionné(s)." }.show()
+                    .setPositiveButton("OK"){_,_-> prefs.edit().putStringSet("selected_repos", selected.toSet()).apply(); info.text="${selected.size} projet(s) sélectionné(s). Choix mémorisé." }.show()
             }
         } catch(e:Exception){ runOnUiThread { info.text="Impossible de scanner GitHub : ${e.message}" } }
     }.start()
@@ -77,6 +79,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun addRepo(repo:String, branchCount:Int, runs:List<JSONObject>, buildNeeded:Boolean, mergeNeeded:Boolean, releaseNeeded:Boolean, artifactName:String?) {
+        val projectBox=LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL; setPadding(18,18,18,18)
+            background=android.graphics.drawable.GradientDrawable().apply { setColor(0x181FFFFFF); setStroke(3,0xFF777777.toInt()); cornerRadius=22f }
+        }
+        val oldList=list; list=projectBox
+        projectBox.addView(TextView(this).apply { text="📦 "+repo.uppercase(); textSize=25f; gravity=Gravity.CENTER; setPadding(12,16,12,16) })
         val actions=mutableListOf<String>()
         if(buildNeeded) actions.add("APK/AAB à reconstruire")
         if(mergeNeeded) actions.add("merge à faire")
@@ -90,6 +98,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             val msg=r.optJSONObject("head_commit")?.optString("message")?.lineSequence()?.firstOrNull() ?: "Sans commentaire de commit"
             addCard("$dot ${r.optString("name","GitHub Action")}","Branche : ${r.optString("head_branch")}\n$msg")
         }
+    }
+        list=oldList
+        oldList.addView(projectBox, LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,12,0,18) })
     }
 
     private fun addCard(head:String, body:String, voice:String?=null) {
