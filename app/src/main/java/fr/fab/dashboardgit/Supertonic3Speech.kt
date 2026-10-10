@@ -55,17 +55,35 @@ class Supertonic3Speech(
         return created
     }
 
-    fun speak(text:String,sid:Int,seed:Int,onFailure:(Throwable)->Unit) {
+    /**
+     * Default: a whole sentence. Optional small word packets are deliberately
+     * user-controlled so latency and prosody can be compared on the same device.
+     */
+    fun speak(
+        text:String,
+        sid:Int,
+        seed:Int,
+        chunked:Boolean,
+        maxWords:Int,
+        onFailure:(Throwable)->Unit
+    ) {
         val mine=requestId.incrementAndGet()
         executor.queue.clear()
         stopTrack()
         executor.execute {
             try {
+                if(mine!=requestId.get()) return@execute
+                val loadStart=android.os.SystemClock.elapsedRealtime()
                 val e=engine()
-                val chunks=FrenchSpeechChunks.split(text)
-                onDebug("Supertonic 3 : ${chunks.size} paquet(s), SID ${sid.coerceIn(0,9)}, seed $seed")
+                val loadMs=android.os.SystemClock.elapsedRealtime()-loadStart
+                if(mine!=requestId.get()) return@execute
+                val chunks=if(chunked) FrenchSpeechChunks.split(text,maxWords.coerceIn(5,40))
+                    else listOf(text.trim()).filter { it.isNotBlank() }
+                onDebug("Supertonic 3 : chargement "+loadMs+" ms, voix "+sid+
+                    ", seed "+seed+", morcellement "+chunked+", "+chunks.size+" paquet(s)")
                 for((index,chunk) in chunks.withIndex()) {
                     if(mine!=requestId.get()) return@execute
+                    val begun=android.os.SystemClock.elapsedRealtime()
                     val audio=e.generateWithConfig(
                         text=chunk,
                         config=GenerationConfig(
@@ -76,12 +94,22 @@ class Supertonic3Speech(
                             extra=mapOf("lang" to "fr","seed" to seed.toString())
                         )
                     )
+                    val elapsed=android.os.SystemClock.elapsedRealtime()-begun
                     if(mine!=requestId.get()) return@execute
-                    onDebug("Supertonic 3 : paquet ${index+1}/${chunks.size}, ${audio.samples.size} échantillons")
+                    require(audio.samples.isNotEmpty()) { "Aucun son généré" }
+                    val duration=audio.samples.size*1000L/audio.sampleRate
+                    onDebug("Supertonic 3 paquet "+(index+1)+"/"+chunks.size+
+                        " : génération "+elapsed+" ms, audio "+duration+" ms, "+audio.samples.size+" échantillons")
                     play(audio.samples,audio.sampleRate,mine)
                 }
+                if(mine==requestId.get()) onDebug("Supertonic 3 : lecture terminée")
             } catch(t:Throwable) {
-                if(mine==requestId.get()) onFailure(t)
+                if(mine!=requestId.get()) {
+                    onDebug("Supertonic 3 : requête annulée")
+                    return@execute
+                }
+                onDebug("Supertonic 3 : échec "+t.javaClass.simpleName+": "+t.message)
+                onFailure(t)
             }
         }
     }
