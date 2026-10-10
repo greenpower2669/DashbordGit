@@ -475,7 +475,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             else -> "⚪ Compilation / merge / release : vérification incomplète"
         }
         val count=snapshot.optInt("branchCount",-1)
-        val branches=if(count<0) "Branches : non vérifiées" else "Branches visibles : "+count
+        val branchList=snapshot.optJSONArray("webBranches")
+        val branchNames=if(branchList==null) "" else (0 until minOf(5,branchList.length()))
+            .mapNotNull { branchList.optString(it).takeIf(String::isNotBlank) }.joinToString(", ")
+        val branches=when {
+            count<0 -> "Branches : non vérifiées"
+            branchNames.isNotBlank() -> "Branches repérées : "+count+" (HTML partiel)\n"+branchNames
+            else -> "Branches visibles : "+count
+        }
         val age=if(snapshot.has("jsonUpdatedAt")) " · JSON "+snapshot.optString("jsonUpdatedAt") else ""
         val artifact=snapshot.optString("artifactName","")
         val artifactText=if(artifact.isNotBlank()) "\nDernier paquet : "+artifact else ""
