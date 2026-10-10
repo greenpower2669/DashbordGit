@@ -657,3 +657,13 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             runOnUiThread { tts?.speak(s,TextToSpeech.QUEUE_FLUSH,null,"card") }
         }
     }
+
+    override fun onInit(status:Int) {
+        if(status==TextToSpeech.SUCCESS) tts?.language=Locale.FRANCE
+    }
+    override fun onDestroy() {
+        supertonic?.close()
+        tts?.shutdown()
+        super.onDestroy()
+    }
+}
