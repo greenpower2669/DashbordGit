@@ -47,7 +47,8 @@ jobs:
           test ! -e app/src/main/assets/tts/mms
           ! grep -R -E "PierrePiperSpeech|MmsFrenchSpeech" app/src/main/java
           du -sh app/src/main/assets/tts/supertonic3 app/libs/sherpa-onnx-1.13.8.aar
-      - run: gradle :app:assembleDebug
+      - name: Verify Web status parser and compile Android
+        run: gradle :app:testDebugUnitTest :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: DashbordGit-debug-apk
