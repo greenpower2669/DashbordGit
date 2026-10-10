@@ -21,7 +21,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var list: LinearLayout
     private lateinit var info: TextView
     private var tts: TextToSpeech? = null
-    private var kokoro: KokoroSpeech? = null
+    private var pierre: PierrePiperSpeech? = null
     private val selected = linkedSetOf<String>()
     private val debugEvents=mutableListOf<String>()
     private fun debug(msg:String) {
@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         tts = TextToSpeech(this,this)
-        kokoro = KokoroSpeech(this) { debug(it) }
+        pierre = PierrePiperSpeech(this) { debug(it) }
         selected.addAll(prefs.getStringSet("selected_repos", emptySet()) ?: emptySet())
         val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(28,28,28,28) }
         val title=TextView(this).apply { text="● DashbordGit"; textSize=30f }
@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         extras.addView(Button(this).apply { text="💾 EXPORTER SAUVEGARDE"; setOnClickListener { exportFile(101) } })
         extras.addView(Button(this).apply { text="📥 IMPORTER SAUVEGARDE"; setOnClickListener { importFile() } })
         extras.addView(Button(this).apply { text="🧾 EXPORTER JOURNAL DEBUG"; setOnClickListener { exportFile(102) } })
-        extras.addView(Button(this).apply { text="🔊 VOIX KOKORO FRANÇAISE"; setOnClickListener { chooseVoice() } })
+        extras.addView(Button(this).apply { text="🔊 VOIX PIERRE / PIPER"; setOnClickListener { chooseVoice() } })
         info=TextView(this).apply { text="Choisis les projets avec ⚙ puis appuie sur ACTUALISER."; textSize=18f; setPadding(0,20,0,20) }
         val scroll=ScrollView(this)
         list=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
@@ -220,10 +220,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
 
     private fun chooseVoice() {
-        prefs.edit().putInt("kokoro_sid",30).apply()
-        debug("Voix Kokoro française ff_siwis (SID 30) sélectionnée")
-        info.text="Voix Kokoro : Siwis — française. Test en cours…"
-        speak("Bonjour. Je suis Siwis, la voix française de DashbordGit.")
+        debug("Test voix Pierre / Piper fr_FR-upmc-medium, SID 1")
+        info.text="Voix Pierre — Piper UPMC Medium. Test en cours…"
+        speak("Bonjour. Je suis Pierre, la voix française de DashbordGit.")
     }
     private fun exportFile(code:Int) {
         val name=if(code==101) "DashbordGit-sauvegarde.json" else "DashbordGit-journal-debug.txt"
@@ -249,7 +248,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     selected.forEach { name -> loadSnapshot(name)?.let { snapshots.put(name,it) } }
                     val backup=JSONObject().put("format","dashboardgit-backup-v1")
                         .put("selected",JSONArray(selected.toList())).put("snapshots",snapshots)
-                        .put("kokoroSid",30)
+                        
                     contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(backup.toString(2)) }
                     debug("Sauvegarde exportée")
                     info.text="Sauvegarde exportée."
@@ -272,7 +271,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     names.forEach { name -> snapshots.optJSONObject(name)?.let { editor.putString("snapshot_$name",it.toString()) } }
                     editor.apply()
                     selected.clear(); selected.addAll(names)
-                    prefs.edit().putStringSet("selected_repos",selected.toSet()).putInt("kokoro_sid",30).apply()
+                    prefs.edit().putStringSet("selected_repos",selected.toSet()).apply()
                     list.removeAllViews()
                     selected.mapNotNull { loadSnapshot(it) }.sortedByDescending { it.optLong("savedAt") }.forEach { renderSnapshot(it,true) }
                     debug("Sauvegarde importée : ${selected.size} projets")
@@ -283,19 +282,18 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun speak(s:String) {
-        val sid=30
-        val engine=kokoro
+        val engine=pierre
         if(engine==null) {
             tts?.speak(s,TextToSpeech.QUEUE_FLUSH,null,"card")
             return
         }
-        engine.speak(s,sid) { error ->
-            debug("Kokoro indisponible, secours Android : "+error.message)
+        engine.speak(s) { error ->
+            debug("Pierre/Piper indisponible, secours Android : "+error.message)
             runOnUiThread { tts?.speak(s,TextToSpeech.QUEUE_FLUSH,null,"card") }
         }
     }
     override fun onInit(status:Int){ if(status==TextToSpeech.SUCCESS) tts?.language=Locale.FRANCE }
-    override fun onDestroy(){ kokoro?.close(); tts?.shutdown(); super.onDestroy() }
+    override fun onDestroy(){ pierre?.close(); tts?.shutdown(); super.onDestroy() }
 
     private fun getJsonArray(url:String,key:String?=null):JSONArray {
         val c=(URL(url).openConnection() as HttpURLConnection).apply { setRequestProperty("Accept","application/vnd.github+json"); setRequestProperty("User-Agent","DashbordGit-Android"); setRequestProperty("X-GitHub-Api-Version","2022-11-28"); connectTimeout=10000; readTimeout=15000 }
