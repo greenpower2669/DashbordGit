@@ -141,7 +141,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun addRepo(repo:String, branchCount:Int, runs:List<JSONObject>, buildNeeded:Boolean, mergeNeeded:Boolean, releaseNeeded:Boolean, artifactName:String?) {
         val projectBox=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL; setPadding(18,18,18,18)
-            background=android.graphics.drawable.GradientDrawable().apply { setColor(0x181FFFFFF); setStroke(3,0xFF777777.toInt()); cornerRadius=22f }
+            background=android.graphics.drawable.GradientDrawable().apply { setColor(0x18FFFFFF); setStroke(3,0xFF777777.toInt()); cornerRadius=22f }
         }
         val oldList=list; list=projectBox
         projectBox.addView(TextView(this).apply { text="📦 "+repo.uppercase(); textSize=25f; gravity=Gravity.CENTER; setPadding(12,16,12,16) })
@@ -158,7 +158,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             val msg=r.optJSONObject("head_commit")?.optString("message")?.lineSequence()?.firstOrNull() ?: "Sans commentaire de commit"
             addCard("$dot ${r.optString("name","GitHub Action")}","Branche : ${r.optString("head_branch")}\n$msg")
         }
-    }
         list=oldList
         oldList.addView(projectBox, LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,12,0,18) })
     }
