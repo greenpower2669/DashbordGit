@@ -1,9 +1,11 @@
-# DashbordGit — Carte centrale
+# DashbordGit — carte centrale
 
-Branche de travail : `feature/web-first-supertonic3-v1`. Main conservée intacte.
+Branche d'étude et développement : `feature/web-first-supertonic3-v1`. **Main intacte**.
 
-Lire ensuite : `brain.md` pour l'architecture, `todo.md` pour les validations, `debughistorical.md` pour les régressions et `ordres-de-mission.md` pour les contraintes.
+Tiroirs essentiels : `brain.md` (architecture), `debughistorical.md` (régressions), `todo.md` (validation), `ordres-de-mission.md` (instructions).
 
-Modules : `MainActivity.kt` (interface, consentements API, jauge et paramètres), `GithubWebSource.kt` (pages publiques + JSON), `Supertonic3Speech.kt` (Sherpa-ONNX), `FrenchSpeechChunks.kt` (découpage optionnel), `scripts/build_dashboardgit_snapshot.py` (producteur JSON événementiel optionnel).
+Code : `MainActivity.kt` (UI, consentements API, quota et TTS), `GithubWebSource.kt` (lecture Web et découverte JSON), `GithubActionHtmlParser.kt` (statuts conservateurs par ID de build), `Supertonic3Speech.kt` (seule voix), `FrenchSpeechChunks.kt` (morcellement optionnel), `scripts/build_dashboardgit_snapshot.py` (production JSON si installé sur la branche principale).
 
-**Ne pas merger main, publier de release, ni faire de Play Store sans validation explicite.**
+CI #27 vert le 11/10/2026 : compilation APK et tests Kotlin du parseur passés. **Le statut Web en conditions réelles reste à vérifier sur téléphone** ; un résultat ambigu doit rester GRIS et l'API reste facultative avec consentement.
+
+Ne pas merger `main`, créer de release, ni publier sur Play sans validation explicite.

@@ -1,7 +1,9 @@
-# Mission active — Web prioritaire / Supertonic 3
+# Mission active — Web-first + corrections de diagnostic 11/10/2026
 
-Autorisée au code sur branche de travail, pas au merge sur main ni aux releases.
+Fab a autorisé le CODE mais pas de merge main, release ou publication. Travailler sur `feature/web-first-supertonic3-v1`.
 
-Critères : lire les JSON publics optionnels, compléter via Web, API seulement par consentement ; jauge visible et horodatée ; pas de réseau automatique ; afficher VERT/ROUGE/EN COURS/ATTENTE/INCONNU sur preuve ; Supertonic 3 INT8 seul, SID 1, seed 2026, morcellement OFF par défaut et réglable dans engrenage ; préserver sauvegardes et accessibilité.
+Dernières corrections : JSON public **uniquement si annoncé** sur une branche/lien, Web de complément pour données manquantes ; identité exacte de run nécessaire avant toute classification HTML. API GitHub accessible seulement selon paramètres de consentement, jauge toujours visible. Affichage d'états inconnus explicite et historique compact. Conserver sans modification le Supertonic 3 INT8, SID 1 et seed 2026, morcellement par défaut désactivé.
 
-Règles : ne jamais inventer statut/quotas. Documenter les limites de HTML dynamique et du délai JSON. Mettre à jour les mémoires vivantes à la validation CI. Signaler explicitement si les champs Web ne sont pas disponibles. Test APK nécessaire avant déclaration de réussite complète.
+Tests préalables : compilation Android + tests unitaires status parser sur CI (build #27 vert). Tests sur téléphone encore requis pour vérifier les pages GitHub réelles et voir si accord API nécessaire. Ne pas déclarer 100 % Web réussi sans preuve utilisateur.
+
+Méthode : mémoire vivante synchronisée, conservation des erreurs historiques et contraintes, traçabilité SHA/build, éviter de coder depuis la seule mémoire.
