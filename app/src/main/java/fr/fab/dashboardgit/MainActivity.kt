@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         extras.addView(Button(this).apply { text="💾 EXPORTER SAUVEGARDE"; setOnClickListener { exportFile(101) } })
         extras.addView(Button(this).apply { text="📥 IMPORTER SAUVEGARDE"; setOnClickListener { importFile() } })
         extras.addView(Button(this).apply { text="🧾 EXPORTER JOURNAL DEBUG"; setOnClickListener { exportFile(102) } })
-        extras.addView(Button(this).apply { text="🔊 VOIX KOKORO"; setOnClickListener { chooseVoice() } })
+        extras.addView(Button(this).apply { text="🔊 VOIX KOKORO FRANÇAISE"; setOnClickListener { chooseVoice() } })
         info=TextView(this).apply { text="Choisis les projets avec ⚙ puis appuie sur ACTUALISER."; textSize=18f; setPadding(0,20,0,20) }
         val scroll=ScrollView(this)
         list=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
@@ -220,24 +220,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
 
     private fun chooseVoice() {
-        val labels=arrayOf(
-            "Sarah — féminine",
-            "Bella — féminine",
-            "Nicole — féminine",
-            "Sky — féminine"
-        )
-        val ids=intArrayOf(3,1,2,4)
-        val current=prefs.getInt("kokoro_sid",3)
-        val checked=ids.indexOf(current).coerceAtLeast(0)
-        android.app.AlertDialog.Builder(this)
-            .setTitle("Voix Kokoro locale")
-            .setSingleChoiceItems(labels,checked) { dialog,index ->
-                prefs.edit().putInt("kokoro_sid",ids[index]).apply()
-                debug("Voix Kokoro SID "+ids[index]+" sélectionnée")
-                info.text="Voix Kokoro : "+labels[index]+". Touchez une carte pour écouter."
-                dialog.dismiss()
-                speak("Bonjour. Kokoro est maintenant la voix locale de DashbordGit.")
-            }.show()
+        prefs.edit().putInt("kokoro_sid",30).apply()
+        debug("Voix Kokoro française ff_siwis (SID 30) sélectionnée")
+        info.text="Voix Kokoro : Siwis — française. Test en cours…"
+        speak("Bonjour. Je suis Siwis, la voix française de DashbordGit.")
     }
     private fun exportFile(code:Int) {
         val name=if(code==101) "DashbordGit-sauvegarde.json" else "DashbordGit-journal-debug.txt"
@@ -263,7 +249,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     selected.forEach { name -> loadSnapshot(name)?.let { snapshots.put(name,it) } }
                     val backup=JSONObject().put("format","dashboardgit-backup-v1")
                         .put("selected",JSONArray(selected.toList())).put("snapshots",snapshots)
-                        .put("kokoroSid",prefs.getInt("kokoro_sid",3))
+                        .put("kokoroSid",30)
                     contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(backup.toString(2)) }
                     debug("Sauvegarde exportée")
                     info.text="Sauvegarde exportée."
@@ -286,7 +272,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     names.forEach { name -> snapshots.optJSONObject(name)?.let { editor.putString("snapshot_$name",it.toString()) } }
                     editor.apply()
                     selected.clear(); selected.addAll(names)
-                    prefs.edit().putStringSet("selected_repos",selected.toSet()).putInt("kokoro_sid",backup.optInt("kokoroSid",3)).apply()
+                    prefs.edit().putStringSet("selected_repos",selected.toSet()).putInt("kokoro_sid",30).apply()
                     list.removeAllViews()
                     selected.mapNotNull { loadSnapshot(it) }.sortedByDescending { it.optLong("savedAt") }.forEach { renderSnapshot(it,true) }
                     debug("Sauvegarde importée : ${selected.size} projets")
@@ -297,7 +283,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun speak(s:String) {
-        val sid=prefs.getInt("kokoro_sid",3)
+        val sid=30
         val engine=kokoro
         if(engine==null) {
             tts?.speak(s,TextToSpeech.QUEUE_FLUSH,null,"card")
