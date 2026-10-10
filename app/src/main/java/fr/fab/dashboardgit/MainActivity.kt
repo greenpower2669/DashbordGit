@@ -1,6 +1,9 @@
 package fr.fab.dashboardgit
 
 import android.os.Bundle
+import android.content.Intent
+import java.text.SimpleDateFormat
+import java.util.Date
 import android.speech.tts.TextToSpeech
 import android.view.Gravity
 import android.widget.*
@@ -18,6 +21,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var info: TextView
     private var tts: TextToSpeech? = null
     private val selected = linkedSetOf<String>()
+    private val debugEvents=mutableListOf<String>()
+    private fun debug(msg:String) {
+        val safe=msg.replace(Regex("(?i)(authorization|bearer|token)\\s*[:=]\\s*\\S+"), "[SECRET]")
+        synchronized(debugEvents) {
+            debugEvents.add(SimpleDateFormat("yyyy-MM-dd HH:mm:ss",Locale.FRANCE).format(Date())+" | "+safe.take(500))
+            if(debugEvents.size>500) debugEvents.removeAt(0)
+        }
+    }
     private val prefs by lazy { getSharedPreferences("dashboardgit", MODE_PRIVATE) }
     private val cache by lazy { getSharedPreferences("dashboardgit_cache", MODE_PRIVATE) }
 
@@ -31,12 +42,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val settings=Button(this).apply { text="⚙ Projets"; setOnClickListener { chooseProjects() } }
         val refresh=Button(this).apply { text="🔄 ACTUALISER"; setOnClickListener { refreshSelected() } }
         controls.addView(settings); controls.addView(refresh)
-        info=TextView(this).apply { text="Choisis les projets avec ⚙ puis appuie sur Rafraîchir."; textSize=18f; setPadding(0,20,0,20) }
+        val extras=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
+        extras.addView(Button(this).apply { text="💾 EXPORTER SAUVEGARDE"; setOnClickListener { exportFile(101) } })
+        extras.addView(Button(this).apply { text="📥 IMPORTER SAUVEGARDE"; setOnClickListener { importFile() } })
+        extras.addView(Button(this).apply { text="🧾 EXPORTER JOURNAL DEBUG"; setOnClickListener { exportFile(102) } })
+        extras.addView(Button(this).apply { text="🔊 VOIX SHERPA / KOKORO"; setOnClickListener { chooseVoice() } })
+        info=TextView(this).apply { text="Choisis les projets avec ⚙ puis appuie sur ACTUALISER."; textSize=18f; setPadding(0,20,0,20) }
         val scroll=ScrollView(this)
         list=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
         scroll.addView(list)
-        root.addView(title); root.addView(controls); root.addView(info); root.addView(scroll, LinearLayout.LayoutParams(-1,0,1f))
+        root.addView(title); root.addView(controls); root.addView(extras); root.addView(info); root.addView(scroll, LinearLayout.LayoutParams(-1,0,1f))
         setContentView(root)
+        selected.mapNotNull { loadSnapshot(it) }.sortedByDescending { it.optLong("savedAt") }.forEach { renderSnapshot(it,true) }
+        debug("Ouverture : ${selected.size} projets")
     }
 
     private fun chooseProjects() = Thread {
@@ -54,20 +72,21 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun refreshSelected() {
         if(selected.isEmpty()){ info.text="Sélectionne d'abord un ou plusieurs projets avec ⚙."; return }
-        info.text="Vérification des changements…"; list.removeAllViews()
+        info.text="Vérification des changements…"; list.removeAllViews(); debug("Actualisation manuelle")
         Thread {
             selected.forEach { repo ->
                 try {
                     val cached=loadSnapshot(repo)
                     val publicRunId=scrapeLatestRunId(repo)
-                    if(cached!=null && publicRunId!=null && publicRunId==cached.optLong("runId",-1L)) {
+                    if(cached!=null && publicRunId!=null && publicRunId==cached.optLong("runId",-1L)) { debug("$repo : cache utilisé")
                         runOnUiThread { renderSnapshot(cached, true) }
                     } else {
                         val fresh=scanRepo(repo)
-                        saveSnapshot(repo,fresh)
+                        saveSnapshot(repo,fresh); debug("$repo : nouvel état sauvegardé")
                         runOnUiThread { renderSnapshot(fresh, false) }
                     }
                 } catch(e:Exception){
+                    debug("$repo : ${e.message}")
                     val cached=loadSnapshot(repo)
                     runOnUiThread {
                         if(cached!=null) renderSnapshot(cached, true)
@@ -183,9 +202,78 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
     private fun isNewer(a:String,b:String)=if(a.isBlank()) false else if(b.isBlank()) true else try { Instant.parse(a).isAfter(Instant.parse(b)) } catch(_:Exception){ false }
     private fun getJsonObject(url:String):JSONObject {
-        val conn=(URL(url).openConnection() as HttpURLConnection).apply { setRequestProperty("Accept","application/vnd.github+json"); connectTimeout=10000; readTimeout=15000 }
+        val conn=(URL(url).openConnection() as HttpURLConnection).apply { setRequestProperty("Accept","application/vnd.github+json"); setRequestProperty("User-Agent","DashbordGit-Android"); setRequestProperty("X-GitHub-Api-Version","2022-11-28"); connectTimeout=10000; readTimeout=15000 }
         if(conn.responseCode !in 200..299) throw Exception("GitHub HTTP "+conn.responseCode)
         return JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
+    }
+
+
+    private fun chooseVoice() {
+        val engines=tts?.engines ?: emptyList()
+        val labels=listOf("Voix Android française (secours)")+engines.map { it.label+" — "+it.name }
+        android.app.AlertDialog.Builder(this).setTitle("Moteur vocal installé")
+            .setItems(labels.toTypedArray()) { _, index ->
+                val engine=if(index==0) "" else engines[index-1].name
+                prefs.edit().putString("tts_engine",engine).apply()
+                tts?.shutdown()
+                tts=if(engine.isBlank()) TextToSpeech(this,this) else TextToSpeech(this,this,engine)
+                debug("Moteur vocal sélectionné : "+engine)
+                info.text="Moteur choisi. Touchez une carte pour écouter."
+            }.show()
+    }
+    private fun exportFile(code:Int) {
+        val name=if(code==101) "DashbordGit-sauvegarde.json" else "DashbordGit-journal-debug.txt"
+        val mime=if(code==101) "application/json" else "text/plain"
+        startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE); type=mime; putExtra(Intent.EXTRA_TITLE,name)
+        },code)
+    }
+    private fun importFile() {
+        startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE); type="application/json"
+        },103)
+    }
+    @Deprecated("Document picker")
+    override fun onActivityResult(requestCode:Int,resultCode:Int,data:Intent?) {
+        super.onActivityResult(requestCode,resultCode,data)
+        if(resultCode!=RESULT_OK) return
+        val uri=data?.data ?: return
+        try {
+            when(requestCode) {
+                101 -> {
+                    val snapshots=JSONObject()
+                    selected.forEach { name -> loadSnapshot(name)?.let { snapshots.put(name,it) } }
+                    val backup=JSONObject().put("format","dashboardgit-backup-v1")
+                        .put("selected",JSONArray(selected.toList())).put("snapshots",snapshots)
+                    contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(backup.toString(2)) }
+                    debug("Sauvegarde exportée")
+                    info.text="Sauvegarde exportée."
+                }
+                102 -> {
+                    val logs=synchronized(debugEvents) { debugEvents.joinToString("\n") }
+                    contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write("DashbordGit journal local\n"+logs) }
+                    info.text="Journal de debug exporté."
+                }
+                103 -> {
+                    val raw=contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: error("Fichier illisible")
+                    val backup=JSONObject(raw)
+                    require(backup.optString("format")=="dashboardgit-backup-v1") { "Format inconnu" }
+                    val array=backup.getJSONArray("selected")
+                    val names=(0 until array.length()).map { array.getString(it) }
+                    require(names.all { it.matches(Regex("[A-Za-z0-9_.-]{1,100}")) }) { "Nom de projet invalide" }
+                    val snapshots=backup.getJSONObject("snapshots")
+                    val editor=cache.edit().clear()
+                    names.forEach { name -> snapshots.optJSONObject(name)?.let { editor.putString("snapshot_$name",it.toString()) } }
+                    editor.apply()
+                    selected.clear(); selected.addAll(names)
+                    prefs.edit().putStringSet("selected_repos",selected.toSet()).apply()
+                    list.removeAllViews()
+                    selected.mapNotNull { loadSnapshot(it) }.sortedByDescending { it.optLong("savedAt") }.forEach { renderSnapshot(it,true) }
+                    debug("Sauvegarde importée : ${selected.size} projets")
+                    info.text="Sauvegarde restaurée : ${selected.size} projets."
+                }
+            }
+        } catch(e:Exception) { debug("Import/export : ${e.message}"); info.text="Erreur : ${e.message}" }
     }
 
     private fun speak(s:String){ tts?.speak(s,TextToSpeech.QUEUE_FLUSH,null,"card") }
@@ -193,7 +281,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     override fun onDestroy(){ tts?.shutdown(); super.onDestroy() }
 
     private fun getJsonArray(url:String,key:String?=null):JSONArray {
-        val c=(URL(url).openConnection() as HttpURLConnection).apply { setRequestProperty("Accept","application/vnd.github+json"); connectTimeout=10000; readTimeout=15000 }
+        val c=(URL(url).openConnection() as HttpURLConnection).apply { setRequestProperty("Accept","application/vnd.github+json"); setRequestProperty("User-Agent","DashbordGit-Android"); setRequestProperty("X-GitHub-Api-Version","2022-11-28"); connectTimeout=10000; readTimeout=15000 }
         if(c.responseCode !in 200..299) throw Exception("GitHub HTTP ${c.responseCode}")
         val text=c.inputStream.bufferedReader().use { it.readText() }
         return if(key==null) JSONArray(text) else org.json.JSONObject(text).getJSONArray(key)
