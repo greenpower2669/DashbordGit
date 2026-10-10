@@ -9,6 +9,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
 import org.json.JSONArray
+import org.json.JSONObject
+import java.time.Instant
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var list: LinearLayout
@@ -55,15 +57,32 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     val runs=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/actions/runs?per_page=10","workflow_runs")
                     val branches=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/branches?per_page=10")
                     val latest=(0 until minOf(5,runs.length())).map { runs.getJSONObject(it) }
-                    runOnUiThread { addRepo(repo,branches.length(),latest) }
+                    val repoInfo=getJsonObject("https://api.github.com/repos/greenpower2669/$repo")
+                    val defaultBranch=repoInfo.optString("default_branch","main")
+                    val commits=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/commits?per_page=1")
+                    val releases=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/releases?per_page=1")
+                    val artifacts=getJsonArray("https://api.github.com/repos/greenpower2669/$repo/actions/artifacts?per_page=30","artifacts")
+                    val latestPush=commits.optJSONObject(0)?.optJSONObject("commit")?.optJSONObject("committer")?.optString("date").orEmpty()
+                    val latestRelease=releases.optJSONObject(0)?.optString("published_at").orEmpty()
+                    val latestArtifact=(0 until artifacts.length()).map { artifacts.getJSONObject(it) }.filter { !it.optBoolean("expired",true) && (it.optString("name").contains("apk",true) || it.optString("name").contains("aab",true)) }.maxByOrNull { it.optString("created_at") }
+                    var mergeNeeded=false
+                    (0 until branches.length()).map { branches.getJSONObject(it).optString("name") }.filter { it.isNotBlank() && it!=defaultBranch }.take(10).forEach { b ->
+                        try { if(getJsonObject("https://api.github.com/repos/greenpower2669/$repo/compare/$defaultBranch...$b").optInt("ahead_by",0)>0) mergeNeeded=true } catch(_:Exception){}
+                    }
+                    runOnUiThread { addRepo(repo,branches.length(),latest,isNewer(latestPush,latestArtifact?.optString("created_at").orEmpty()),mergeNeeded,isNewer(latestPush,latestRelease),latestArtifact?.optString("name")) }
                 } catch(e:Exception){ runOnUiThread { addCard("🟡 $repo","Données indisponibles : ${e.message}") } }
             }
             runOnUiThread { info.text="Rafraîchissement terminé. Touchez une carte pour l'entendre." }
         }.start()
     }
 
-    private fun addRepo(repo:String, branchCount:Int, runs:List<org.json.JSONObject>) {
-        addCard("📦 $repo","Branches visibles : $branchCount")
+    private fun addRepo(repo:String, branchCount:Int, runs:List<JSONObject>, buildNeeded:Boolean, mergeNeeded:Boolean, releaseNeeded:Boolean, artifactName:String?) {
+        val actions=mutableListOf<String>()
+        if(buildNeeded) actions.add("APK/AAB à reconstruire")
+        if(mergeNeeded) actions.add("merge à faire")
+        if(releaseNeeded) actions.add("release à faire")
+        val follow=if(actions.isEmpty()) "🟢 À jour" else "🟡 " + actions.joinToString(" • ")
+        addCard("📦 $repo","Branches visibles : $branchCount\n$follow" + (artifactName?.let{"\nDernier paquet : $it"}?:""), voiceSummary(repo,actions))
         runs.forEach { r ->
             val status=r.optString("status")
             val conclusion=r.optString("conclusion")
@@ -73,12 +92,30 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    private fun addCard(head:String, body:String) {
+    private fun addCard(head:String, body:String, voice:String?=null) {
         val box=TextView(this).apply {
             text="$head\n$body"; textSize=20f; setPadding(24,24,24,24); gravity=Gravity.START
-            setOnClickListener { speak(text.toString()) }
+            setOnClickListener { speak(voice ?: text.toString()) }
         }
         list.addView(box, LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,8,0,8) })
+    }
+
+    private fun voiceSummary(repo:String, actions:List<String>):String {
+        val name=repo.replace(Regex("([a-z])([A-Z])"),"$1 $2")
+        if(actions.isEmpty()) return "$name est à jour. La compilation, le merge et la release ne demandent pas d'action."
+        val natural=actions.map { when(it) {
+            "APK/AAB à reconstruire" -> "une nouvelle compilation Android est à faire"
+            "merge à faire" -> "il reste un merge à faire"
+            "release à faire" -> "il reste une release à faire"
+            else -> it
+        } }
+        return "$name. " + natural.joinToString(". ") + "."
+    }
+    private fun isNewer(a:String,b:String)=if(a.isBlank()) false else if(b.isBlank()) true else try { Instant.parse(a).isAfter(Instant.parse(b)) } catch(_:Exception){ false }
+    private fun getJsonObject(url:String):JSONObject {
+        val conn=(URL(url).openConnection() as HttpURLConnection).apply { setRequestProperty("Accept","application/vnd.github+json"); connectTimeout=10000; readTimeout=15000 }
+        if(conn.responseCode !in 200..299) throw Exception("GitHub HTTP "+conn.responseCode)
+        return JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
     }
 
     private fun speak(s:String){ tts?.speak(s,TextToSpeech.QUEUE_FLUSH,null,"card") }
