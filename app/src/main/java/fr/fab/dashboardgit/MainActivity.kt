@@ -461,10 +461,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val branches=if(count<0) "Branches : non vérifiées" else "Branches visibles : "+count
         val age=if(snapshot.has("jsonUpdatedAt")) " · JSON "+snapshot.optString("jsonUpdatedAt") else ""
         val artifact=snapshot.optString("artifactName","")
-        addCard(dot+" "+repo+" — "+state,branches+"\n"+follow+
-            if(artifact.isNotBlank()) "\nDernier paquet : "+artifact else ""+
-            "\nSource : "+source+age,
-            repo+" : dernier build "+state+". "+if(actions.isEmpty()) "Autres opérations non confirmées." else actions.joinToString(". "))
+        val artifactText=if(artifact.isNotBlank()) "\nDernier paquet : "+artifact else ""
+        val body=branches+"\n"+follow+artifactText+"\nSource : "+source+age
+        val spoken=repo+" : dernier build "+state+". "+
+            if(actions.isEmpty()) "Autres opérations non confirmées." else actions.joinToString(". ")
+        addCard(dot+" "+repo+" — "+state,body,spoken)
         runs.forEach { run ->
             val (symbol,label)=runStatusText(run)
             val message=run.optJSONObject("head_commit")?.optString("message")?.lineSequence()?.firstOrNull()
