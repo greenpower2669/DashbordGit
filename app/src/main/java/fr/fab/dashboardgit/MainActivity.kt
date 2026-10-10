@@ -34,7 +34,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        tts = TextToSpeech(this, this)
+        val configuredEngine=prefs.getString("tts_engine","").orEmpty()
+        tts = if(configuredEngine.isBlank()) TextToSpeech(this,this) else TextToSpeech(this,this,configuredEngine)
         selected.addAll(prefs.getStringSet("selected_repos", emptySet()) ?: emptySet())
         val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(28,28,28,28) }
         val title=TextView(this).apply { text="● DashbordGit"; textSize=30f }
