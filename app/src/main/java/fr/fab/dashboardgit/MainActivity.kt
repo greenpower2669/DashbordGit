@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.content.Intent
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.io.File
 import android.speech.tts.TextToSpeech
 import android.view.Gravity
 import android.widget.*
@@ -25,9 +26,17 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private val debugEvents=mutableListOf<String>()
     private fun debug(msg:String) {
         val safe=msg.replace(Regex("(?i)(authorization|bearer|token)\\s*[:=]\\s*\\S+"), "[SECRET]")
+        val line=SimpleDateFormat("yyyy-MM-dd HH:mm:ss",Locale.FRANCE).format(Date())+" | "+safe.take(500)
         synchronized(debugEvents) {
-            debugEvents.add(SimpleDateFormat("yyyy-MM-dd HH:mm:ss",Locale.FRANCE).format(Date())+" | "+safe.take(500))
+            debugEvents.add(line)
             if(debugEvents.size>500) debugEvents.removeAt(0)
+        }
+        runCatching {
+            val file=File(filesDir,"dashboardgit-debug.log")
+            if(file.exists() && file.length()>1_500_000) {
+                file.writeText(file.readLines().takeLast(800).joinToString("\n", postfix="\n"))
+            }
+            file.appendText(line+"\n")
         }
     }
     private val prefs by lazy { getSharedPreferences("dashboardgit", MODE_PRIVATE) }
@@ -260,7 +269,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     info.text="Sauvegarde exportée."
                 }
                 102 -> {
-                    val logs=synchronized(debugEvents) { debugEvents.joinToString("\n") }
+                    val logFile=File(filesDir,"dashboardgit-debug.log")
+                    val logs=if(logFile.exists()) logFile.readText() else synchronized(debugEvents) { debugEvents.joinToString("\n") }
                     contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write("DashbordGit journal local\n"+logs) }
                     info.text="Journal de debug exporté."
                 }

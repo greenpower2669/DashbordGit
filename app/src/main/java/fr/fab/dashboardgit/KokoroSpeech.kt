@@ -11,6 +11,8 @@ import com.k2fsa.sherpa.onnx.OfflineTtsKokoroModelConfig
 import com.k2fsa.sherpa.onnx.OfflineTtsModelConfig
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+import java.io.File
+import java.io.FileOutputStream
 
 class KokoroSpeech(
     private val context: Context,
@@ -28,29 +30,63 @@ class KokoroSpeech(
     private fun engine(): OfflineTts {
         engine?.let { return it }
         return synchronized(this) {
-            engine ?: OfflineTts(
-                assetManager = context.assets,
-                config = OfflineTtsConfig(
-                    model = OfflineTtsModelConfig(
-                        kokoro = OfflineTtsKokoroModelConfig(
-                            model = "$MODEL_DIR/model.int8.onnx",
-                            voices = "$MODEL_DIR/voices.bin",
-                            tokens = "$MODEL_DIR/tokens.txt",
-                            dataDir = "$MODEL_DIR/espeak-ng-data",
-                            lang = "fr",
-                            lengthScale = 1.0f
+            engine ?: run {
+                onDebug("Kokoro : préparation des données eSpeak")
+                val dataDir = ensureEspeakData()
+                onDebug("Kokoro : initialisation Sherpa-ONNX")
+                OfflineTts(
+                    assetManager = context.assets,
+                    config = OfflineTtsConfig(
+                        model = OfflineTtsModelConfig(
+                            kokoro = OfflineTtsKokoroModelConfig(
+                                model = "$MODEL_DIR/model.int8.onnx",
+                                voices = "$MODEL_DIR/voices.bin",
+                                tokens = "$MODEL_DIR/tokens.txt",
+                                dataDir = dataDir.absolutePath,
+                                lang = "fr",
+                                lengthScale = 1.0f
+                            ),
+                            numThreads = 2,
+                            debug = false,
+                            provider = "cpu"
                         ),
-                        numThreads = 4,
-                        debug = false,
-                        provider = "cpu"
-                    ),
-                    maxNumSentences = 1,
-                    silenceScale = 0.2f
-                )
-            ).also {
-                engine = it
-                onDebug("Kokoro local prêt : ${it.sampleRate()} Hz, ${it.numSpeakers()} voix")
+                        maxNumSentences = 1,
+                        silenceScale = 0.2f
+                    )
+                ).also {
+                    engine = it
+                    onDebug("Kokoro local prêt : ${it.sampleRate()} Hz, ${it.numSpeakers()} voix")
+                }
             }
+        }
+    }
+
+    private fun ensureEspeakData(): File {
+        val assetRoot = "$MODEL_DIR/espeak-ng-data"
+        val targetRoot = File(context.filesDir, "$MODEL_DIR/espeak-ng-data")
+        val marker = File(targetRoot, "phontab")
+        if (marker.exists() && marker.length() > 0) return targetRoot
+
+        onDebug("Kokoro : copie locale de espeak-ng-data")
+        copyAssetTree(assetRoot, targetRoot)
+        require(marker.exists() && marker.length() > 0) {
+            "espeak-ng-data incomplet : phontab absent"
+        }
+        return targetRoot
+    }
+
+    private fun copyAssetTree(assetPath: String, target: File) {
+        val children = context.assets.list(assetPath) ?: emptyArray()
+        if (children.isEmpty()) {
+            target.parentFile?.mkdirs()
+            context.assets.open(assetPath).use { input ->
+                FileOutputStream(target).use { output -> input.copyTo(output) }
+            }
+            return
+        }
+        target.mkdirs()
+        children.forEach { child ->
+            copyAssetTree("$assetPath/$child", File(target, child))
         }
     }
 
@@ -59,8 +95,10 @@ class KokoroSpeech(
         stopTrack()
         executor.execute {
             try {
+                onDebug("Kokoro : demande de parole, ${text.length} caractères")
                 val tts = engine()
                 val safeSid = sid.coerceIn(0, (tts.numSpeakers() - 1).coerceAtLeast(0))
+                onDebug("Kokoro : génération audio, voix $safeSid")
                 val audio = tts.generateWithConfig(
                     text,
                     GenerationConfig(
@@ -71,6 +109,7 @@ class KokoroSpeech(
                 )
                 if (mine != requestId.get()) return@execute
                 require(audio.samples.isNotEmpty()) { "Kokoro n'a généré aucun son" }
+                onDebug("Kokoro : audio généré, ${audio.samples.size} échantillons")
                 play(audio.samples, audio.sampleRate, mine)
             } catch (t: Throwable) {
                 onDebug("Erreur Kokoro : ${t.javaClass.simpleName}: ${t.message}")
