@@ -2,7 +2,7 @@ name: Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ main, feature/web-first-supertonic3-v1 ]
 permissions:
   contents: read
 jobs:
@@ -17,65 +17,36 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Cache Sherpa-ONNX + Piper + Supertonic 3 + MMS
+      - name: Validate optional dashboard status JSON
+        run: python3 scripts/test_dashboardgit_snapshot.py
+      - name: Cache Sherpa-ONNX and Supertonic 3 only
         uses: actions/cache@v4
         with:
           path: .ci-cache
-          key: sherpa-onnx-1.13.8-triple-piper-supertonic3-mms-v1
-      - name: Bundle Piper Pierre + Supertonic 3 + MMS French
+          key: sherpa-onnx-1.13.8-supertonic3-int8-only-82fa96f9
+      - name: Bundle Sherpa-ONNX and Supertonic 3 INT8 (French)
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .ci-cache app/libs app/src/main/assets/tts
-
           AAR=.ci-cache/sherpa-onnx-1.13.8.aar
-          PIPER=.ci-cache/vits-piper-fr_FR-upmc-medium.tar.bz2
-          SUPER=.ci-cache/sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2
-          MMS=.ci-cache/vits-mms-fra.tar.bz2
-
+          MODEL=.ci-cache/sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2
           test -f "$AAR" || curl -fL --retry 4 --retry-delay 3 -o "$AAR" https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-1.13.8.aar
           echo "633c24321e06b1fe79feafa03ea16cbc0f8a286641e2da3559bac91bdb13bd96  $AAR" | sha256sum -c -
-
-          test -f "$PIPER" || curl -fL --retry 4 --retry-delay 3 -o "$PIPER" https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-fr_FR-upmc-medium.tar.bz2
-          echo "e9830a331a16f6cc5ef3116a287065e015d3495c3f56b974889a266da7f89a7f  $PIPER" | sha256sum -c -
-
-          test -f "$SUPER" || curl -fL --retry 4 --retry-delay 3 -o "$SUPER" https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2
-          echo "82fa96f91c4ef8abaae3a14a3f4153facf88bed821d1f7331cec2700f432c427  $SUPER" | sha256sum -c -
-
-          test -f "$MMS" || curl -fL --retry 4 --retry-delay 3 -o "$MMS" https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-mms-fra.tar.bz2
-          test "$(stat -c%s "$MMS")" = "107713220"
-
+          test -f "$MODEL" || curl -fL --retry 4 --retry-delay 3 -o "$MODEL" https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2
+          echo "82fa96f91c4ef8abaae3a14a3f4153facf88bed821d1f7331cec2700f432c427  $MODEL" | sha256sum -c -
           cp "$AAR" app/libs/sherpa-onnx-1.13.8.aar
-          rm -rf app/src/main/assets/tts/piper app/src/main/assets/tts/supertonic3 app/src/main/assets/tts/mms
-          rm -rf /tmp/vits-piper-fr_FR-upmc-medium /tmp/sherpa-onnx-supertonic-3-tts-int8-2026-05-11 /tmp/vits-mms-fra
-
-          tar -xjf "$PIPER" -C /tmp
-          mkdir -p app/src/main/assets/tts/piper
-          mv /tmp/vits-piper-fr_FR-upmc-medium app/src/main/assets/tts/piper/pierre
-
-          tar -xjf "$SUPER" -C /tmp
+          rm -rf app/src/main/assets/tts
+          mkdir -p app/src/main/assets/tts
+          tar -xjf "$MODEL" -C /tmp
           mv /tmp/sherpa-onnx-supertonic-3-tts-int8-2026-05-11 app/src/main/assets/tts/supertonic3
-
-          tar -xjf "$MMS" -C /tmp
-          mkdir -p app/src/main/assets/tts/mms
-          mv /tmp/vits-mms-fra app/src/main/assets/tts/mms/fra
-
-          test -f app/src/main/assets/tts/piper/pierre/fr_FR-upmc-medium.onnx
-          test -f app/src/main/assets/tts/piper/pierre/tokens.txt
-          test -d app/src/main/assets/tts/piper/pierre/espeak-ng-data
-
-          test -f app/src/main/assets/tts/supertonic3/duration_predictor.int8.onnx
-          test -f app/src/main/assets/tts/supertonic3/text_encoder.int8.onnx
-          test -f app/src/main/assets/tts/supertonic3/vector_estimator.int8.onnx
-          test -f app/src/main/assets/tts/supertonic3/vocoder.int8.onnx
-          test -f app/src/main/assets/tts/supertonic3/tts.json
-          test -f app/src/main/assets/tts/supertonic3/unicode_indexer.bin
-          test -f app/src/main/assets/tts/supertonic3/voice.bin
-
-          test -f app/src/main/assets/tts/mms/fra/model.onnx
-          test -f app/src/main/assets/tts/mms/fra/tokens.txt
-
-          du -sh app/src/main/assets/tts/piper app/src/main/assets/tts/supertonic3 app/src/main/assets/tts/mms app/libs/sherpa-onnx-1.13.8.aar
+          for name in duration_predictor.int8.onnx text_encoder.int8.onnx vector_estimator.int8.onnx vocoder.int8.onnx tts.json unicode_indexer.bin voice.bin; do
+            test -f "app/src/main/assets/tts/supertonic3/$name"
+          done
+          test ! -e app/src/main/assets/tts/piper
+          test ! -e app/src/main/assets/tts/mms
+          ! grep -R -E "PierrePiperSpeech|MmsFrenchSpeech" app/src/main/java
+          du -sh app/src/main/assets/tts/supertonic3 app/libs/sherpa-onnx-1.13.8.aar
       - run: gradle :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
