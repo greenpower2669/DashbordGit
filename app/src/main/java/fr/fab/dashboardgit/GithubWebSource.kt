@@ -80,17 +80,9 @@ class GithubWebSource(private val log:(String)->Unit) {
         val conclusion=Regex(""""conclusion"\s*:\s*"(success|failure|cancelled|timed_out|action_required|skipped)"""",RegexOption.IGNORE_CASE)
             .find(page)?.groupValues?.getOrNull(1)?.lowercase().orEmpty()
         if(status!=null) return status to conclusion
-        // Some versions of GitHub expose an explicit run status in accessible labels.
-        val label=Regex("""(?:aria-label|title)=["'](In progress|Queued|Pending|Waiting|Success|Failure|Cancelled|Timed out)["']""",RegexOption.IGNORE_CASE)
-            .find(page)?.groupValues?.getOrNull(1)?.lowercase() ?: return null
-        return when(label) {
-            "success" -> "completed" to "success"
-            "failure" -> "completed" to "failure"
-            "cancelled" -> "completed" to "cancelled"
-            "timed out" -> "completed" to "timed_out"
-            "in progress" -> "in_progress" to ""
-            else -> "queued" to ""
-        }
+        // Labels from other widgets or older runs are ambiguous. Never mark green
+        // unless the current run's explicit structured status was available.
+        return null
     }
 
     private fun readActionRuns(repo:String):JSONArray {
