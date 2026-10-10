@@ -52,6 +52,17 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
+        // Une seule migration au premier lancement de la version Supertonic 3 seule.
+        // Elle remplace les anciens choix conservés par l'APK trois moteurs.
+        if(!prefs.getBoolean("supertonic_v4_migrated",false)) {
+            prefs.edit()
+                .putInt("supertonic_sid",1)
+                .putInt("supertonic_seed",2026)
+                .putBoolean("speech_chunked",false)
+                .putInt("speech_max_words",18)
+                .putBoolean("supertonic_v4_migrated",true)
+                .apply()
+        }
         tts=TextToSpeech(this,this)
         supertonic=Supertonic3Speech(this) { debug(it) }
         selected.addAll(prefs.getStringSet("selected_repos",emptySet()) ?: emptySet())
@@ -601,6 +612,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         .put("supertonicSeed",prefs.getInt("supertonic_seed",2026))
                         .put("speechChunked",prefs.getBoolean("speech_chunked",false))
                         .put("speechMaxWords",prefs.getInt("speech_max_words",18))
+                        .put("speechTest",prefs.getString("speech_test",""))
                         .put("apiMode",prefs.getString("api_mode","WEB"))
                         
                     contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(backup.toString(2)) }
@@ -631,6 +643,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         .putInt("supertonic_seed",backup.optInt("supertonicSeed",2026))
                         .putBoolean("speech_chunked",backup.optBoolean("speechChunked",false))
                         .putInt("speech_max_words",backup.optInt("speechMaxWords",18).coerceIn(5,40))
+                        .putString("speech_test",backup.optString("speechTest","").take(800))
                         .putString("api_mode",backup.optString("apiMode","WEB").let { if(it in setOf("WEB","ASK","ALLOWED")) it else "WEB" })
                         .apply()
                     list.removeAllViews()
