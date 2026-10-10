@@ -1,117 +1,163 @@
 package fr.fab.dashboardgit
 
+import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** Reads only public HTML and raw GitHub JSON, never api.github.com. */
-class GithubWebSource(private val log:(String)->Unit) {
+/**
+ * Read-only public GitHub Web reader. Does not call api.github.com.
+ * Every network call is initiated only by a user-triggered action.
+ *
+ * Optional .dashboardgit.json manifests are requested ONLY when advertised by
+ * a visible public branch or a repository link. No speculative 3x404 probing.
+ */
+class GithubWebSource(
+    context:Context,
+    private val log:(String)->Unit
+) {
     private val owner="greenpower2669"
     private val legalName=Regex("[A-Za-z0-9_.-]{1,100}")
+    private val preferences=context.getSharedPreferences("dashboardgit_web_sources",Context.MODE_PRIVATE)
 
-    private fun read(url:String, accept:String="text/html"):String? {
+    private fun read(url:String,accept:String="text/html",quiet404:Boolean=false):String? {
         val parsed=URL(url)
-        require(parsed.protocol=="https" && parsed.host in setOf("github.com","raw.githubusercontent.com")) {
-            "Web host not allowed"
+        require(parsed.protocol=="https" &&
+            parsed.host in setOf("github.com","raw.githubusercontent.com")) {
+            "Hôte Web non autorisé"
         }
         val connection=(parsed.openConnection() as HttpURLConnection).apply {
             connectTimeout=8500
             readTimeout=10500
             instanceFollowRedirects=false
-            setRequestProperty("User-Agent","Mozilla/5.0 (DashbordGit Android; public GitHub reader)")
+            setRequestProperty("User-Agent","Mozilla/5.0 (compatible; DashbordGit Android Web status reader)")
             setRequestProperty("Accept",accept)
             setRequestProperty("Accept-Language","en-US,en;q=0.9")
         }
         try {
             val code=connection.responseCode
             if(code !in 200..299) {
-                log("WEB HTTP "+code+" : "+parsed.path.take(100))
+                if(code!=404 || !quiet404) log("WEB HTTP "+code+" : "+parsed.path.take(110))
                 return null
             }
-            val builder=StringBuilder()
+            val text=StringBuilder()
             connection.inputStream.bufferedReader().use { input ->
                 val buffer=CharArray(8192)
-                while(builder.length<2_500_000) {
-                    val length=input.read(buffer)
-                    if(length<0) break
-                    builder.append(buffer,0,minOf(length,2_500_000-builder.length))
+                while(text.length<2_500_000) {
+                    val n=input.read(buffer)
+                    if(n<0) break
+                    text.append(buffer,0,minOf(n,2_500_000-text.length))
                 }
             }
-            return builder.toString()
-        } finally { connection.disconnect() }
+            return text.toString()
+        } finally {
+            connection.disconnect()
+        }
     }
 
     fun listPublicRepos():List<String> {
         val repos=linkedSetOf<String>()
         val pattern=Regex("""/greenpower2669/([A-Za-z0-9_.-]+)(?:["'/?#]|&quot;|\\u0022)""")
         for(page in 1..3) {
-            val url="https://github.com/"+owner+"?tab=repositories&page="+page
-            val html=runCatching { read(url) }.getOrNull() ?: continue
+            val html=runCatching {
+                read("https://github.com/"+owner+"?tab=repositories&page="+page)
+            }.getOrNull() ?: continue
             pattern.findAll(html).forEach {
                 val name=it.groupValues[1]
-                if(legalName.matches(name) && name !in setOf("followers","following","stars","tab")) repos.add(name)
+                if(legalName.matches(name) && name !in setOf("followers","following","stars","tab")) {
+                    repos.add(name)
+                }
             }
             if(repos.size>=100) break
         }
-        log("WEB repositories: "+repos.size)
+        log("WEB : "+repos.size+" dépôts publics détectés")
         return repos.toList()
     }
 
-    private fun readPublicJson(repo:String):JSONObject? {
-        for(branch in listOf("dashboardgit-status","main","master")) {
-            val url="https://raw.githubusercontent.com/"+owner+"/"+repo+"/"+branch+"/.dashboardgit.json"
-            val data=runCatching { read(url,"application/json") }.getOrNull() ?: continue
-            val json=runCatching { JSONObject(data) }.getOrNull() ?: continue
-            if(json.optInt("schemaVersion",-1)!=1 || json.optString("repo")!=repo) {
-                log("JSON "+repo+" rejected: invalid format or repo")
-                continue
-            }
-            json.put("jsonSource",url)
-            return json
+    private fun manifestCandidates(repo:String,home:String?,branches:String?):List<String> {
+        val candidates=linkedSetOf<String>()
+        val cached=preferences.getString("manifest_"+repo,null)
+        if(cached!=null && cached.startsWith("https://raw.githubusercontent.com/"+owner+"/"+repo+"/")) {
+            candidates.add(cached)
         }
-        return null
+
+        // Explicit published branch: the producer runs only after being installed.
+        val pattern=Regex("/"+owner+"/"+Regex.escape(repo)+"/tree/dashboardgit-status(?:[\"'/?#]|&quot;)")
+        if(branches!=null && pattern.containsMatchIn(branches)) {
+            candidates.add("https://raw.githubusercontent.com/"+owner+"/"+repo+
+                "/dashboardgit-status/.dashboardgit.json")
+        }
+        // A conventional manifest explicitly linked from the project's main page.
+        val directLink=Regex("/"+owner+"/"+Regex.escape(repo)+
+            "/(?:blob|raw)/(main|master)/\\.dashboardgit\\.json")
+        if(home!=null) {
+            directLink.findAll(home).forEach {
+                candidates.add("https://raw.githubusercontent.com/"+owner+"/"+repo+"/"+
+                    it.groupValues[1]+"/.dashboardgit.json")
+            }
+        }
+        return candidates.toList()
     }
 
-    private fun statusFromRunPage(html:String):Pair<String,String>? {
-        val page=html.replace("&quot;","\"").replace("&#39;","'")
-        val status=Regex(""""status"\s*:\s*"(queued|pending|waiting|in_progress|completed|requested)"""",RegexOption.IGNORE_CASE)
-            .find(page)?.groupValues?.getOrNull(1)?.lowercase()
-        val conclusion=Regex(""""conclusion"\s*:\s*"(success|failure|cancelled|timed_out|action_required|skipped)"""",RegexOption.IGNORE_CASE)
-            .find(page)?.groupValues?.getOrNull(1)?.lowercase().orEmpty()
-        if(status!=null) return status to conclusion
-        // Labels from other widgets or older runs are ambiguous. Never mark green
-        // unless the current run's explicit structured status was available.
+    private fun readAdvertisedJson(repo:String,home:String?,branches:String?):JSONObject? {
+        val candidates=manifestCandidates(repo,home,branches)
+        if(candidates.isEmpty()) {
+            log("JSON "+repo+" : aucun manifeste public annoncé, aucune requête inutile")
+            return null
+        }
+        for(url in candidates) {
+            val content=runCatching { read(url,"application/json",quiet404=true) }
+                .getOrNull() ?: continue
+            val json=runCatching { JSONObject(content) }.getOrNull()
+            if(json==null || json.optInt("schemaVersion",-1)!=1 ||
+                json.optString("repo")!=repo) {
+                log("JSON "+repo+" : contenu invalide, ignoré")
+                continue
+            }
+            preferences.edit().putString("manifest_"+repo,url).apply()
+            json.put("jsonSource",url)
+            log("JSON "+repo+" : manifeste vérifié lu")
+            return json
+        }
+        preferences.edit().remove("manifest_"+repo).apply()
+        log("JSON "+repo+" : manifeste annoncé mais inaccessible")
         return null
     }
 
     private fun readActionRuns(repo:String):JSONArray {
-        val html=runCatching { read("https://github.com/"+owner+"/"+repo+"/actions") }.getOrNull()
-            ?: return JSONArray()
+        val base="https://github.com/"+owner+"/"+repo+"/actions"
+        val html=runCatching { read(base) }.getOrNull() ?: return JSONArray()
         val pattern=Regex("/"+owner+"/"+Regex.escape(repo)+"/actions/runs/(\\d+)")
-        val ids=pattern.findAll(html).mapNotNull { it.groupValues[1].toLongOrNull() }
-            .distinct().sortedDescending().take(5).toList()
+        val ids=pattern.findAll(html).mapNotNull {
+            it.groupValues[1].toLongOrNull()
+        }.distinct().sortedDescending().take(5).toList()
+        log("WEB Actions "+repo+" : "+ids.size+" identifiant(s) de build")
         val result=JSONArray()
-        ids.forEachIndexed { index,id ->
+        for((index,id) in ids.withIndex()) {
             val run=JSONObject().put("id",id).put("name","GitHub Actions")
-                .put("html_url","https://github.com/"+owner+"/"+repo+"/actions/runs/"+id)
                 .put("status","unknown").put("conclusion","")
-            // Limit detailed HTML requests; don't overwhelm a public service.
-            if(index<2) {
+                .put("html_url",base+"/runs/"+id)
+            val fromRow=GithubActionHtmlParser.fromActionsListRow(id,html)
+            var state=fromRow
+            if(state==null && index<2) {
                 val detail=runCatching { read(run.getString("html_url")) }.getOrNull()
-                detail?.let { statusFromRunPage(it) }?.let {
-                    run.put("status",it.first).put("conclusion",it.second)
-                }
+                if(detail!=null) state=GithubActionHtmlParser.fromRunPage(id,detail)
+            }
+            if(state!=null) {
+                run.put("status",state.status).put("conclusion",state.conclusion)
+                log("WEB Actions "+repo+" #"+id+" : "+
+                    state.status+" / "+state.conclusion+" ("+state.evidence+")")
+            } else {
+                log("WEB Actions "+repo+" #"+id+" : état HTML non identifiable")
             }
             result.put(run)
         }
         return result
     }
 
-    private fun complementWithPublicWeb(repo:String,snapshot:JSONObject) {
-        val home=runCatching { read("https://github.com/"+owner+"/"+repo) }.getOrNull()
+    private fun extractPublicMetadata(repo:String,home:String?,branches:String?,snapshot:JSONObject) {
         if(home!=null) {
-            // SHA visible on the public repository page, without REST consumption.
             val sha=Regex("/"+owner+"/"+Regex.escape(repo)+"/commit/([0-9a-fA-F]{40})")
                 .find(home)?.groupValues?.getOrNull(1)
             if(!sha.isNullOrBlank()) snapshot.put("latestCommit",sha)
@@ -119,12 +165,9 @@ class GithubWebSource(private val log:(String)->Unit) {
                 .find(home)?.groupValues?.getOrNull(1)
             if(!updated.isNullOrBlank()) snapshot.put("webCommitTime",updated)
         }
-        // This is a count of branches VISIBLE in the public HTML, not the
-        // repository's guaranteed full number of branches.
-        val branchPage=runCatching { read("https://github.com/"+owner+"/"+repo+"/branches") }.getOrNull()
-        if(branchPage!=null) {
+        if(branches!=null) {
             val branchPattern=Regex("/"+owner+"/"+Regex.escape(repo)+"/tree/([A-Za-z0-9_.%/-]+)")
-            val names=branchPattern.findAll(branchPage)
+            val names=branchPattern.findAll(branches)
                 .map {
                     java.net.URLDecoder.decode(it.groupValues[1].replace("+","%2B"),"UTF-8")
                 }
@@ -135,49 +178,97 @@ class GithubWebSource(private val log:(String)->Unit) {
                 if(snapshot.optInt("branchCount",-1)<0) snapshot.put("branchCount",names.size)
             }
         }
-        // No fabricated branch count / merge verdict if HTML is too dynamic.
-        val releasePage=runCatching { read("https://github.com/"+owner+"/"+repo+"/releases") }.getOrNull()
-        if(releasePage!=null) {
-            val tag=Regex("/"+owner+"/"+Regex.escape(repo)+"/releases/tag/([A-Za-z0-9._%+-]+)")
-                .find(releasePage)?.groupValues?.getOrNull(1)
+        val releases=runCatching {
+            read("https://github.com/"+owner+"/"+repo+"/releases")
+        }.getOrNull()
+        if(releases!=null) {
+            val tag=Regex("/"+owner+"/"+Regex.escape(repo)+
+                "/releases/tag/([A-Za-z0-9._%+-]+)")
+                .find(releases)?.groupValues?.getOrNull(1)
             if(!tag.isNullOrBlank()) snapshot.put("latestRelease",tag)
         }
     }
 
+    private fun safeRun(run:JSONObject?):Boolean {
+        if(run==null) return false
+        val status=run.optString("status","unknown")
+        val conclusion=run.optString("conclusion","")
+        return when(status) {
+            "queued","pending","waiting","requested","in_progress" -> true
+            "completed" -> conclusion in setOf("success","failure","cancelled","timed_out",
+                "skipped","action_required","neutral","startup_failure")
+            else -> false
+        }
+    }
+
     fun inspect(repo:String):JSONObject {
-        require(legalName.matches(repo)) { "Invalid repository name" }
+        require(legalName.matches(repo)) { "Nom de dépôt non conforme" }
         val snapshot=JSONObject()
             .put("repo",repo).put("savedAt",System.currentTimeMillis())
             .put("source","WEB").put("runs",JSONArray())
-            .put("runId",-1).put("branchCount",-1)
+            .put("runId",-1L).put("branchCount",-1)
             .put("buildKnown",false).put("mergeKnown",false).put("releaseKnown",false)
-        val json=readPublicJson(repo)
+        val home=runCatching {
+            read("https://github.com/"+owner+"/"+repo)
+        }.getOrNull()
+        val branches=runCatching {
+            read("https://github.com/"+owner+"/"+repo+"/branches")
+        }.getOrNull()
+
+        val json=readAdvertisedJson(repo,home,branches)
         if(json!=null) {
             snapshot.put("source","JSON")
                 .put("jsonUpdatedAt",json.optString("updatedAt"))
                 .put("jsonSource",json.optString("jsonSource"))
             for(key in listOf("branchCount","artifactName","latestCommit","latestRelease",
-                "buildNeeded","mergeNeeded","releaseNeeded","buildKnown","mergeKnown","releaseKnown")) {
+                "buildNeeded","mergeNeeded","releaseNeeded",
+                "buildKnown","mergeKnown","releaseKnown")) {
                 if(json.has(key)) snapshot.put(key,json.get(key))
             }
-            val runList=json.optJSONArray("runs") ?: JSONArray()
-            snapshot.put("runs",runList)
-            if(runList.length()>0) snapshot.put("runId",runList.optJSONObject(0)?.optLong("id",-1L) ?: -1L)
+            val jsonRuns=json.optJSONArray("runs") ?: JSONArray()
+            snapshot.put("runs",jsonRuns)
+            if(jsonRuns.length()>0) snapshot.put("runId",
+                jsonRuns.optJSONObject(0)?.optLong("id",-1L) ?: -1L)
         }
-        complementWithPublicWeb(repo,snapshot)
+        extractPublicMetadata(repo,home,branches,snapshot)
+
+        // A more recent run seen on the Web hides old JSON success/failure
+        // even when the newest run status cannot be extracted.
         val webRuns=readActionRuns(repo)
         if(webRuns.length()>0) {
-            val webId=webRuns.optJSONObject(0)?.optLong("id",-1L) ?: -1L
-            val jsonRun=snapshot.optJSONArray("runs")?.optJSONObject(0)
-            val jsonId=jsonRun?.optLong("id",-1L) ?: -1L
-            if(webId>=jsonId && webId>0) {
-                snapshot.put("runs",webRuns).put("runId",webId).put("source","WEB")
-                if(webId==jsonId && webRuns.optJSONObject(0)?.optString("status")=="unknown") {
-                    snapshot.put("lastKnownConclusion",jsonRun?.optString("conclusion").orEmpty())
+            val webLatest=webRuns.optJSONObject(0)
+            val webId=webLatest?.optLong("id",-1L) ?: -1L
+            val jsonLatest=snapshot.optJSONArray("runs")?.optJSONObject(0)
+            val jsonId=jsonLatest?.optLong("id",-1L) ?: -1L
+            val jsonCompleted=jsonLatest?.optString("status")=="completed" &&
+                safeRun(jsonLatest)
+            val webCompleted=webLatest?.optString("status")=="completed" &&
+                safeRun(webLatest)
+            when {
+                webId>jsonId -> {
+                    snapshot.put("runs",webRuns).put("runId",webId).put("source","WEB")
+                }
+                webId==jsonId && jsonLatest!=null && jsonCompleted && !webCompleted -> {
+                    // Same run, last JSON confirms a completed result; HTML may
+                    // have only a partial status. Keep it explicitly LAST KNOWN.
+                    log("JSON "+repo+" #"+jsonId+" : résultat confirmé, HTML incomplet")
+                }
+                webId==jsonId && jsonLatest!=null && !safeRun(webLatest) &&
+                    safeRun(jsonLatest) -> {
+                    log("JSON "+repo+" #"+jsonId+" : statut conservé depuis le manifeste")
+                }
+                webId>=jsonId -> {
+                    snapshot.put("runs",webRuns).put("runId",webId).put("source","WEB")
                 }
             }
         }
-        if(snapshot.optJSONArray("runs")?.length()==0) log(repo+" : no proved current workflow status")
+        val latest=snapshot.optJSONArray("runs")?.optJSONObject(0)
+        if(!safeRun(latest)) {
+            snapshot.put("needsStatusConfirmation",true)
+            log("WEB "+repo+" : dernier build non confirmé, API possible sur autorisation")
+        } else {
+            snapshot.put("needsStatusConfirmation",false)
+        }
         return snapshot
     }
 }
