@@ -134,22 +134,21 @@ class GithubWebSource(
         }.distinct().sortedDescending().take(5).toList()
         log("WEB Actions "+repo+" : "+ids.size+" identifiant(s) de build")
         val result=JSONArray()
-        for((index,id) in ids.withIndex()) {
+        for(id in ids) {
             val run=JSONObject().put("id",id).put("name","GitHub Actions")
                 .put("status","unknown").put("conclusion","")
                 .put("html_url",base+"/runs/"+id)
-            val fromRow=GithubActionHtmlParser.fromActionsListRow(id,html)
-            var state=fromRow
-            if(state==null && index<2) {
-                val detail=runCatching { read(run.getString("html_url")) }.getOrNull()
-                if(detail!=null) state=GithubActionHtmlParser.fromRunPage(id,detail)
-            }
+            // Live integration tests have demonstrated that public run detail
+            // HTML currently provides no trustworthy red/green outcome.
+            // A second HTML request per run just wastes time and bandwidth.
+            // Only consider evidence tied to this EXACT run on the list page.
+            val state=GithubActionHtmlParser.fromActionsListRow(id,html)
             if(state!=null) {
                 run.put("status",state.status).put("conclusion",state.conclusion)
                 log("WEB Actions "+repo+" #"+id+" : "+
                     state.status+" / "+state.conclusion+" ("+state.evidence+")")
-            } else {
-                log("WEB Actions "+repo+" #"+id+" : état HTML non identifiable")
+            } else if(id==ids.firstOrNull()) {
+                log("WEB Actions "+repo+" : état HTML du dernier build non prouvé (JSON/API requis)")
             }
             result.put(run)
         }
@@ -189,17 +188,8 @@ class GithubWebSource(
         }
     }
 
-    private fun safeRun(run:JSONObject?):Boolean {
-        if(run==null) return false
-        val status=run.optString("status","unknown")
-        val conclusion=run.optString("conclusion","")
-        return when(status) {
-            "queued","pending","waiting","requested","in_progress" -> true
-            "completed" -> conclusion in setOf("success","failure","cancelled","timed_out",
-                "skipped","action_required","neutral","startup_failure")
-            else -> false
-        }
-    }
+    private fun safeRun(run:JSONObject?):Boolean =
+        GithubWorkflowStatus.classify(run).verified
 
     fun inspect(repo:String):JSONObject {
         require(legalName.matches(repo)) { "Nom de dépôt non conforme" }
