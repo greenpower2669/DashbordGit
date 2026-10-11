@@ -30,6 +30,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var quotaLabel: TextView
     private lateinit var quotaProgress: ProgressBar
     private var homePreview:HomeExplorerPreview?=null
+    private val projectSlots=linkedMapOf<String,LinearLayout>()
+    private val currentSnapshots=linkedMapOf<String,JSONObject>()
+    private lateinit var apiOffer:LinearLayout
+    private var webScanComplete=false
+    private var currentRefresh=0
+    private var apiCheckInProgress=false
+    private var apiOfferWasDismissed=false
+    private var scannerErrors=0
+
     private val refreshInFlight=AtomicBoolean(false)
     private val webSource by lazy { GithubWebSource(this) { debug(it) } }
     private val selected = linkedSetOf<String>()
@@ -114,7 +123,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             textSize=19f
             setPadding(0,16,0,14)
         }
-        val scroll=ScrollView(this)
+        apiOffer=LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL
+            visibility=android.view.View.GONE
+            setPadding(14,12,14,12)
+        }
+        val scroll=ScrollView(this).apply {
+            isFillViewport=false
+            isVerticalScrollBarEnabled=true
+        }
         list=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
         scroll.addView(list)
         root.addView(title)
@@ -129,13 +146,76 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             setMargins(0,12,0,10)
         })
         root.addView(info)
+        root.addView(apiOffer)
         root.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
         setContentView(root)
         showQuota()
-        selected.mapNotNull { loadSnapshot(it) }
-            .sortedByDescending { it.optLong("savedAt") }
-            .forEach { renderSnapshot(it,true) }
+        initializeProjectCards(selected.toList())
         debug("Ouverture locale, "+selected.size+" projets (réseau inactif)")
+    }
+
+    /** Stable scrollable slots: existing cards never disappear during refresh. */
+    private fun ensureProjectSlot(repo:String):LinearLayout {
+        projectSlots[repo]?.let { return it }
+        val holder=LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL
+            contentDescription="Projet "+repo
+        }
+        projectSlots[repo]=holder
+        list.addView(holder,LinearLayout.LayoutParams(-1,-2))
+        return holder
+    }
+
+    private fun initializeProjectCards(projects:List<String>) {
+        if(projectSlots.keys.toSet()!=projects.toSet()) {
+            // The selection changed in Settings; rebuild ONCE before scanning,
+            // not midway through scrolling and never for each repo.
+            list.removeAllViews()
+            projectSlots.clear()
+            currentSnapshots.keys.retainAll(projects.toSet())
+        }
+        for(repo in projects) {
+            val holder=ensureProjectSlot(repo)
+            if(!currentSnapshots.containsKey(repo)) {
+                val saved=loadSnapshot(repo)
+                if(saved!=null) {
+                    displayProject(repo,saved,true)
+                } else {
+                    holder.removeAllViews()
+                    holder.addView(TextView(this).apply {
+                        text="📦 "+repo+"\n⚪ Pas encore de données. Appuie sur ACTUALISER."
+                        textSize=21f
+                        setPadding(16,22,16,22)
+                    })
+                }
+            }
+        }
+    }
+
+    private fun displayProject(repo:String,snapshot:JSONObject,fromCache:Boolean=false) {
+        val holder=ensureProjectSlot(repo)
+        // Entire replacement happens inside the same stable holder, keeping
+        // all other project views and ScrollView position intact.
+        currentSnapshots[repo]=JSONObject(snapshot.toString())
+        holder.removeAllViews()
+        val existingList=list
+        list=holder
+        try {
+            renderSnapshot(snapshot,fromCache)
+        } finally {
+            list=existingList
+        }
+    }
+
+    private fun refreshSummary() {
+        var verified=0
+        var unknown=0
+        for(repo in selected) {
+            val recent=currentSnapshots[repo]?.optJSONArray("runs")?.optJSONObject(0)
+            if(GithubWorkflowStatus.classify(recent).verified) verified++ else unknown++
+        }
+        info.text="Tableau consultable : "+verified+" état(s) confirmé(s), "+
+            unknown+" inconnu(s), "+scannerErrors+" erreur(s) Web."
     }
 
     private fun showSettings() {
