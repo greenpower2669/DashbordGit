@@ -17,7 +17,7 @@ class GithubActionHtmlRealSiteTest {
         val manifest=File(root,"manifest.json")
         assertTrue("Missing live GitHub page captures from CI",manifest.isFile)
         val cases=JSONArray(manifest.readText())
-        assertTrue("Expected real success, failure and running cases",cases.length>=3)
+        assertTrue("Expected real success, failure and running cases",cases.length()>=3)
         val categories=linkedSetOf<String>()
         var verified=0
         var unknown=0
