@@ -75,20 +75,32 @@ data class GithubDomEvidence(
                 val id=row.optString("id").toLongOrNull() ?: continue
                 val url=row.optString("url")
                 val label=row.optString("label").ifBlank { row.optString("iconLabel") }
+                // A valid run with unrecognized aria-label is still the
+                // latest visible run: keep it GREY, rather than showing an
+                // older successful run as fresh.
+                val urlValid=GithubMosaicTargets.isTrackedUrl(repo,url) &&
+                    url.substringBefore('?').endsWith("/actions/runs/$id")
+                if(!urlValid)continue
                 val evidence=fromAccessibleLabel(repo,id,url,label,
                     row.optString("branch"),row.optString("message"),whenObserved)
-                if(evidence!=null && evidence.verified)found[id]=evidence
+                    ?: GithubDomEvidence(repo,id,url,"unknown","",
+                        row.optString("branch").take(160),
+                        row.optString("message").take(250),
+                        whenObserved,"Build #"+id+" visible, mais statut ARIA indéterminé")
+                found[id]=evidence
             }
             return found.values.sortedByDescending { it.runId }
         }
 
         /** Merge only same/newer verified evidence; no stale green. */
         fun merge(snapshot:JSONObject,evidence:GithubDomEvidence):JSONObject {
-            if(!evidence.verified)return snapshot
             val old=snapshot.optJSONArray("runs") ?: JSONArray()
             val first=old.optJSONObject(0)
             val oldId=first?.optLong("id",-1L) ?: -1L
             if(evidence.runId<oldId)return snapshot
+            // Unknown on the SAME run cannot erase proven API/DOM evidence.
+            // Unknown on a NEWER run must hide an older green immediately.
+            if(!evidence.verified && evidence.runId==oldId)return snapshot
             if(evidence.runId==oldId &&
                 snapshot.optString("source")=="API" &&
                 snapshot.optLong("savedAt",0L)>evidence.observedAt)return snapshot
@@ -111,7 +123,7 @@ data class GithubDomEvidence(
                 .put("runId",evidence.runId)
                 .put("source","CHROMIUM_DOM")
                 .put("savedAt",evidence.observedAt)
-                .put("needsStatusConfirmation",false)
+                .put("needsStatusConfirmation",!evidence.verified)
         }
     }
 }
