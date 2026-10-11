@@ -1,16 +1,18 @@
-# DashbordGit — suite des validations
+# DashbordGit — suivi opérationnel DASHGIT-CHROMIUM-001
 
-- [x] CI réelle : trois pages GitHub Actions authentiques (vert/rouge/en cours) téléchargées et testées.
-- [x] Prouver que le HTML actuel ne donne pas de couleurs fiables : 0/3, aucune fausse réussite.
-- [x] Démontrer les mêmes statuts via API officielle en CI : 3/3 couleurs correctes.
-- [x] Supprimer les lectures inutiles des pages de détail HTML et les recherches JSON 404.
-- [x] Centraliser statut/couleur et politique de consentement API ; tests de refus mode WEB.
-- [x] Regrouper la demande de consentement API par ACTUALISER, coût estimé et projets affichés.
-- [x] Conserver Supertonic 3 SID 1, seed 2026, morcellement OFF.
-- [ ] Tester la version 0.4.1 sur le téléphone Android : import sauvegarde, ACTUALISER et une seule demande API pour six projets.
-- [ ] Vérifier six statuts réels et la jauge quota après consentement ; refus doit laisser les gris et consommer zéro API.
-- [ ] Mesurer la fraîcheur des sources Web et contrôler les branches, commits, releases, artefacts sans présumer de données non prouvées.
-- [ ] Vérifier persistance des permissions, révocation et reprise d'une ancienne sauvegarde.
-- [ ] Tester l'arrêt et le redémarrage vocal ; sauvegardes et diagnostic.
-- [ ] Publier les JSON événementiels seulement après décision explicite d'intégrer le producteur sur la branche par défaut ; aucun push aux autres projets sans accord.
-- [ ] Garder `main`, les releases et Play inchangés jusqu'à validation.
+- [x] Lire 5 mémoires vivantes avant codage et auditer MainActivity existante.
+- [x] Branche dédiée `feature/dashgit-chromium-mosaic-001`, sans toucher main ni release.
+- [x] Activité mosaïque WebView Chromium native, sans iframe et sans API REST explicite pour les statuts.
+- [x] Cibles Actions (défaut) / run / commit par dépôt ; sauvegarde du choix.
+- [x] Boutons individuel, global séquencé, ouverture externe « Ouvrir avec », appui long/double tap (code ajouté).
+- [x] Afficher page réelle + grossissement + cadrage, et images figées explicitement signalées sous limite de fenêtres (3 par défaut, choix 2/3/4/6).
+- [x] Observer DOM via MutationObserver uniquement, sans polling, distinguer requêtes internes Chromium du REST Dashboard.
+- [x] Tester vraies pages GitHub succès/échec/en cours dans Chrome headless (pas sur Android), conserver rapport et captures en artifact CI.
+- [x] Documenter observations négatives et impossibilités / incertitudes.
+- [ ] **TEST ANDROID RÉEL PRIORITAIRE** : WebView charge les pages GitHub sur Samsung, taille/position du dernier build lisibles, appui long et double tap différenciés, ouvrir avec Chrome.
+- [ ] **EXPERIENCE SPONTANÉE** : garder une page build en cours ouverte sans action jusqu'au résultat, comparer avec Chrome externe et noter horodatages/statut/changements DOM sans rechargement.
+- [ ] Mesurer RAM totale application + renderer, réseau et batterie en mode 2/3/4/6 WebViews, ajuster les limites si nécessaire.
+- [ ] Tester auth privée, HTTP403/404, crash renderer, navigation externe, orientation et pauses.
+- [ ] Vérifier MainActivity, sauvegardes, consentements API, jauge et Supertonic 3 inchangés.
+- [ ] Vérifier CI de tout dernier commit, livrer lien GitHub Actions/artefacts.
+- [ ] Aucun merge main ni publication/release avant accord explicite.
