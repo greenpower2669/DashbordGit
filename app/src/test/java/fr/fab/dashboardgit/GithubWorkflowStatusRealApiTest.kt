@@ -6,7 +6,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
 
-/** Exercises the ACTUAL public REST data downloaded in CI for known red/green runs. */
+/** Exact red, green and ongoing states captured from LIVE GitHub REST in CI. */
 class GithubWorkflowStatusRealApiTest {
     @Test fun officialGithubRunPayloadsClassifyWithoutGuessing() {
         val root=File("src/test/resources/github_live")
@@ -14,24 +14,32 @@ class GithubWorkflowStatusRealApiTest {
         val seen=linkedSetOf<String>()
         for(i in 0 until manifest.length()) {
             val info=manifest.getJSONObject(i)
-            val expected=info.getString("expectedConclusion")
+            val category=info.getString("case")
+            val expectedStatus=info.getString("expectedStatus")
+            val expectedConclusion=info.optString("expectedConclusion","")
             val id=info.getLong("runId")
-            val sample=File(root,"api-$expected-$id.json")
-            assertTrue("Missing independently verified API sample "+sample.name,sample.isFile)
-            val json=JSONObject(sample.readText())
-            assertEquals(id,json.getLong("id"))
-            assertEquals("completed",json.getString("status"))
-            assertEquals(expected,json.getString("conclusion"))
-            val result=GithubWorkflowStatus.classify(json)
-            assertTrue("Actual GitHub REST status was not classified",result.verified)
-            assertEquals(if(expected=="success") "🟢" else "🔴",result.marker)
-            seen.add(expected)
+            val sample=File(root,"api-$category-$id.json")
+            assertTrue("Missing real, independently verified GitHub API fixture "+sample.name,sample.isFile)
+            val data=JSONObject(sample.readText())
+            assertEquals(id,data.getLong("id"))
+            assertEquals(expectedStatus,data.getString("status"))
+            if(category!="running") assertEquals(expectedConclusion,data.getString("conclusion"))
+            val result=GithubWorkflowStatus.classify(data)
+            assertTrue("Actual GitHub REST status was not recognized",result.verified)
+            val expectedMarker=when(category) {
+                "success" -> "🟢"
+                "failure" -> "🔴"
+                "running" -> if(expectedStatus=="in_progress") "🟡" else "🟠"
+                else -> throw AssertionError("Unknown live fixture category")
+            }
+            assertEquals("Incorrect real GitHub run color #$id",expectedMarker,result.marker)
+            seen.add(category)
             println("REAL_API "+id+" -> "+result.marker+" "+result.label)
         }
-        assertEquals(setOf("success","failure"),seen)
+        assertEquals(setOf("success","failure","running"),seen)
     }
 
-    @Test fun staleSuccessNeverTurnsNewUnknownGreen() {
+    @Test fun olderSuccessCannotHideNewUnknown() {
         val older=JSONObject("""{"id":20,"status":"completed","conclusion":"success"}""")
         val newer=JSONObject("""{"id":21,"status":"unknown","conclusion":""}""")
         assertEquals("🟢",GithubWorkflowStatus.classify(older).marker)
@@ -39,12 +47,11 @@ class GithubWorkflowStatusRealApiTest {
         assertEquals("⚪",GithubWorkflowStatus.classify(newer).marker)
     }
 
-    @Test fun inProgressAndQueueHaveRealSemantics() {
-        val running=JSONObject("""{"id":1,"status":"in_progress","conclusion":null}""")
+    @Test fun queuedAndIncompleteCompletionNeverLookGreen() {
         val queued=JSONObject("""{"id":2,"status":"queued","conclusion":null}""")
         val empty=JSONObject("""{"id":3,"status":"completed","conclusion":null}""")
-        assertEquals("🟡",GithubWorkflowStatus.classify(running).marker)
         assertEquals("🟠",GithubWorkflowStatus.classify(queued).marker)
         assertFalse(GithubWorkflowStatus.classify(empty).verified)
+        assertEquals("⚪",GithubWorkflowStatus.classify(empty).marker)
     }
 }
