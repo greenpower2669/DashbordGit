@@ -12,8 +12,8 @@ android {
         applicationId = "fr.fab.dashboardgit"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "0.5.1-dev"
+        versionCode = 11
+        versionName = "0.5.2-dev"
         ndk { abiFilters += "arm64-v8a" }
     }
 }
