@@ -461,114 +461,229 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             return
         }
         if(!refreshInFlight.compareAndSet(false,true)) {
-            info.text="Une actualisation est déjà en cours. Attends sa fin."
+            info.text="Une actualisation Web est déjà en cours."
             return
         }
+        val serial=++currentRefresh
         val projects=selected.toList()
-        // Supplemental, visible Chromium tour. The scanner below remains
-        // independent and never silently reads a Chromium result as verified.
+        scannerErrors=0
+        webScanComplete=false
+        apiOfferWasDismissed=false
+        apiOffer.visibility=android.view.View.GONE
+        apiOffer.removeAllViews()
+        initializeProjectCards(projects)
+        // Previously verified snapshots stay on-screen during the entire
+        // refresh. The browser's output has a separate evidence channel.
         homePreview?.start(projects)
-        info.text="Lecture Web des "+projects.size+" projets…"
-        list.removeAllViews()
-        debug("ACTUALISER : "+projects.size+" projets, lecture Web manuelle")
+        info.text="Lecture Web 0 / "+projects.size+
+            " · fais défiler les cartes pendant l'actualisation."
+        debug("ACTUALISER : "+projects.size+" projets, cartes conservées")
         Thread {
-          try {
-            val snapshots=mutableListOf<Pair<String,JSONObject>>()
-            var failures=0
-            var usedApi=0
-            for((index,repo) in projects.withIndex()) {
-                runOnUiThread {
-                    info.text="Lecture Web "+(index+1)+"/"+projects.size+" : "+repo
-                }
-                try {
-                    snapshots.add(repo to webSource.inspect(repo))
-                } catch(e:Exception) {
-                    failures++
-                    debug("Web "+repo+" : "+e.message)
-                    val cached=loadSnapshot(repo)
-                    if(cached!=null) {
-                        cached.put("source","CACHE")
-                        snapshots.add(repo to cached)
-                    } else {
-                        snapshots.add(repo to JSONObject()
-                            .put("repo",repo).put("source","WEB")
-                            .put("savedAt",System.currentTimeMillis())
-                            .put("runs",JSONArray())
-                            .put("needsStatusConfirmation",true))
+            try {
+                for((index,repo) in projects.withIndex()) {
+                    if(isFinishing || isDestroyed)break
+                    val result=runCatching { webSource.inspect(repo) }
+                    result.onFailure { e ->
+                        debug("Web "+repo+" : "+e.javaClass.simpleName+" "+e.message)
                     }
-                }
-            }
-
-            // Aggregate missing statuses: ONE informed authorization decision
-            // for the whole refresh, instead of one interrupting popup per repo.
-            fun requiresApi(snapshot:JSONObject):Boolean {
-                val jsonDate=snapshot.optString("jsonUpdatedAt","")
-                val age=try {
-                    System.currentTimeMillis()-Instant.parse(jsonDate).toEpochMilli()
-                } catch(_:Exception) { Long.MAX_VALUE }
-                val stale=snapshot.optString("source")=="JSON" &&
-                    (age<0 || age>5*60*1000L)
-                return snapshot.optBoolean("needsStatusConfirmation",true) || stale
-            }
-            val unresolved=snapshots.filter { (_,snapshot) -> requiresApi(snapshot) }
-            if(unresolved.isNotEmpty()) {
-                val details=unresolved.map { it.first }
-                val prompt="Le Web n'a pas confirmé le dernier build pour "+
-                    details.size+" projet(s) : "+details.joinToString(", ")+
-                    ".\nAutoriser UNE requête API par projet, uniquement pour cette actualisation ?"
-                if(permitApi("runs",prompt,unresolved.size)) {
-                    for((repo,snapshot) in unresolved) {
-                        try {
-                            val response=readApi(
-                                "https://api.github.com/repos/greenpower2669/"+
-                                repo+"/actions/runs?per_page=5")
-                            val apiRuns=response.optJSONArray("workflow_runs") ?: JSONArray()
-                            if(apiRuns.length()>0) {
-                                snapshot.put("runs",apiRuns)
-                                    .put("runId",apiRuns.optJSONObject(0)?.optLong("id",-1L) ?: -1L)
-                                    .put("source","API")
-                                    .put("needsStatusConfirmation",false)
-                                usedApi++
-                                debug("API "+repo+" : "+apiRuns.length()+" builds (consentement accordé)")
-                            } else {
-                                debug("API "+repo+" : aucun workflow retourné")
+                    runOnUiThread {
+                        if(serial!=currentRefresh || isFinishing || isDestroyed)return@runOnUiThread
+                        result.fold(onSuccess={ snapshot ->
+                            // New DOM evidence can precede the HTML reader.
+                            val evidence=domEvidence[repo]
+                            val merged=if(evidence!=null)
+                                GithubDomEvidence.merge(snapshot,evidence) else snapshot
+                            displayProject(repo,merged,false)
+                            saveSnapshot(repo,merged)
+                        },onFailure={
+                            scannerErrors++
+                            val saved=currentSnapshots[repo]
+                            if(saved!=null) {
+                                displayProject(repo,saved,true)
                             }
-                        } catch(e:Exception) {
-                            debug("API "+repo+" : "+e.message)
-                        }
+                        })
+                        info.text="Lecture Web "+(index+1)+"/"+projects.size+
+                            " terminée · liste défilable pendant le chargement."
                     }
-                } else {
-                    debug("API : vérification non autorisée, "+details.size+" projet(s) non confirmés")
+                }
+            } catch(e:Exception) {
+                debug("Actualisation interrompue : "+e.javaClass.simpleName+" "+e.message)
+            } finally {
+                refreshInFlight.set(false)
+                runOnUiThread {
+                    if(serial==currentRefresh && !isFinishing && !isDestroyed) {
+                        webScanComplete=true
+                        refreshSummary()
+                        offerApiIfNeeded()
+                    }
                 }
             }
+        }.start()
+    }
 
-            var confirmed=0
-            var unknown=0
-            for((repo,snapshot) in snapshots) {
-                val latest=snapshot.optJSONArray("runs")?.optJSONObject(0)
-                val reliable=GithubWorkflowStatus.classify(latest).verified
-                if(reliable) confirmed++ else unknown++
-                // Cache failed Web reads are not rewritten as newly verified.
-                if(snapshot.optString("source")!="CACHE") saveSnapshot(repo,snapshot)
+    private val domEvidence=linkedMapOf<String,GithubDomEvidence>()
+
+    private fun onExplorerEvidence(evidence:GithubDomEvidence) {
+        if(isFinishing || isDestroyed || evidence.repo !in selected)return
+        if(!evidence.verified) {
+            debug("Chromium "+evidence.repo+" : statut non prouvé pour "+
+                evidence.runId+" ("+evidence.reason.take(100)+")")
+            return
+        }
+        val old=domEvidence[evidence.repo]
+        if(old!=null && old.runId>evidence.runId)return
+        domEvidence[evidence.repo]=evidence
+        val snapshot=currentSnapshots[evidence.repo] ?: loadSnapshot(evidence.repo)
+            ?: JSONObject().put("repo",evidence.repo).put("savedAt",0L)
+                .put("runs",JSONArray())
+        val merged=GithubDomEvidence.merge(snapshot,evidence)
+        if(merged.optString("source")== "CHROMIUM_DOM") {
+            displayProject(evidence.repo,merged,false)
+            saveSnapshot(evidence.repo,merged)
+            debug("Chromium "+evidence.repo+" #"+evidence.runId+
+                " : "+evidence.status+"/"+evidence.conclusion+
+                ", preuve "+evidence.reason.take(150))
+            if(webScanComplete) {
+                refreshSummary()
+                offerApiIfNeeded()
             }
-            runOnUiThread {
-                list.removeAllViews()
-                snapshots.forEach { (_,snapshot) ->
-                    renderSnapshot(snapshot,snapshot.optString("source")=="CACHE")
+        }
+    }
+
+    private fun offerApiIfNeeded() {
+        if(!webScanComplete || apiCheckInProgress || apiOfferWasDismissed)return
+        // Chromium may still be traversing real pages. Await its finish;
+        // offering REST earlier would waste quota for statuses it can prove.
+        if(homePreview?.isExploring()==true) {
+            info.append("\nChromium termine l'exploration, puis vérification des inconnus.")
+            return
+        }
+        val unknown=selected.filter { repo ->
+            !GithubWorkflowStatus.classify(
+                currentSnapshots[repo]?.optJSONArray("runs")?.optJSONObject(0)
+            ).verified
+        }
+        if(unknown.isEmpty()) {
+            apiOffer.visibility=android.view.View.GONE
+            apiOffer.removeAllViews()
+            return
+        }
+        showApiChoice(unknown)
+    }
+
+    private fun showApiChoice(repos:List<String>) {
+        apiOffer.removeAllViews()
+        apiOffer.visibility=android.view.View.VISIBLE
+        val mode=prefs.getString("api_mode","ASK")
+        val blocked=mode=="WEB"
+        apiOffer.background=android.graphics.drawable.GradientDrawable().apply {
+            setColor(0xFFF2F2F6.toInt())
+            setStroke(2,0xFF777788.toInt())
+            cornerRadius=18f
+        }
+        apiOffer.addView(TextView(this).apply {
+            text="⚪ "+repos.size+" statut(s) restent inconnus : "+
+                repos.joinToString(", ")+".\n"+
+                if(blocked)
+                    "Tu as choisi WEB UNIQUEMENT : aucun appel API ne sera fait."
+                else
+                    "Tu peux continuer sans API, ou autoriser "+
+                    repos.size+" vérification(s) officielles à ta demande."
+            textSize=18f
+            setPadding(8,6,8,12)
+        })
+        val remember=CheckBox(this).apply {
+            text="Mémoriser l'autorisation pour les prochaines fois"
+            textSize=16f
+            isChecked=false
+            visibility=if(blocked) android.view.View.GONE else android.view.View.VISIBLE
+        }
+        if(!blocked)apiOffer.addView(remember)
+        val actions=LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL
+        }
+        val refuse=Button(this).apply {
+            text="🚫 CONTINUER SANS API"
+            textSize=19f
+            setOnClickListener {
+                apiOfferWasDismissed=true
+                apiOffer.visibility=android.view.View.GONE
+                apiOffer.removeAllViews()
+                debug("API : REFUS EXPLICITE pour "+repos.size+" projet(s), "+
+                    "aucune requête REST")
+                refreshSummary()
+                info.append("\nAPI refusée. Les états non prouvés restent gris.")
+            }
+        }
+        val accept=Button(this).apply {
+            text=if(blocked) "⚙ ACTIVER LE MODE DEMANDE" else
+                "✅ AUTORISER CETTE VÉRIFICATION"
+            textSize=18f
+            setOnClickListener {
+                if(blocked) {
+                    chooseApiMode()
+                    return@setOnClickListener
                 }
-                info.text="Actualisation terminée : "+confirmed+" statut(s) vérifié(s), "+
-                    unknown+" inconnu(s), "+usedApi+" projet(s) vérifié(s) par API, "+
-                    failures+" erreur(s) Web."
-                if(unknown>0) {
-                    info.append("\nPour les statuts gris : ⚙ PARAMÈTRES → Mode Web / API → Me demander.")
+                if(apiCheckInProgress)return@setOnClickListener
+                apiOfferWasDismissed=true
+                apiOffer.visibility=android.view.View.GONE
+                apiOffer.removeAllViews()
+                if(remember.isChecked) {
+                    prefs.edit().putBoolean("allow_api_runs",true).apply()
+                    debug("API : autorisation durable explicite, révocable dans Paramètres")
+                } else {
+                    debug("API : autorisation unique explicite pour "+repos.size+" projet(s)")
+                }
+                confirmViaApi(repos.toList())
+            }
+        }
+        actions.addView(refuse)
+        actions.addView(accept)
+        apiOffer.addView(actions)
+    }
+
+    private fun confirmViaApi(repositories:List<String>) {
+        apiCheckInProgress=true
+        val serial=currentRefresh
+        Thread {
+            var completed=0
+            try {
+                for(repo in repositories) {
+                    if(isFinishing || isDestroyed || serial!=currentRefresh)break
+                    try {
+                        val response=readApi(
+                            "https://api.github.com/repos/greenpower2669/"+
+                            repo+"/actions/runs?per_page=5")
+                        val runs=response.optJSONArray("workflow_runs") ?: JSONArray()
+                        if(runs.length()==0)continue
+                        runOnUiThread {
+                            if(serial!=currentRefresh || isFinishing || isDestroyed)return@runOnUiThread
+                            val prior=currentSnapshots[repo] ?: JSONObject().put("repo",repo)
+                            val merged=JSONObject(prior.toString())
+                                .put("runs",runs)
+                                .put("runId",runs.optJSONObject(0)?.optLong("id",-1L) ?: -1L)
+                                .put("source","API")
+                                .put("savedAt",System.currentTimeMillis())
+                                .put("needsStatusConfirmation",false)
+                            displayProject(repo,merged,false)
+                            saveSnapshot(repo,merged)
+                            refreshSummary()
+                        }
+                        completed++
+                    } catch(e:Exception) {
+                        debug("API "+repo+" : "+e.javaClass.simpleName+" "+e.message)
+                    }
+                }
+            } finally {
+                runOnUiThread {
+                    apiCheckInProgress=false
+                    if(serial==currentRefresh && !isFinishing && !isDestroyed) {
+                        refreshSummary()
+                        info.append("\nAPI : "+completed+" projet(s) complété(s) sur "+
+                            repositories.size+". Refus possible à chaque demande.")
+                    }
                 }
             }
-          } catch(e:Exception) {
-            debug("Actualisation interrompue : "+e.javaClass.simpleName+" "+e.message)
-            runOnUiThread { info.text="Actualisation interrompue ; données locales conservées." }
-          } finally {
-            refreshInFlight.set(false)
-          }
         }.start()
     }
 
