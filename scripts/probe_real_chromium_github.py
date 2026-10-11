@@ -133,6 +133,35 @@ def main():
                 assert later["bodyLength"]>500, "Real GitHub page did not render"
                 assert url.split("/actions/runs/")[0] in later["url"], "Navigation left GitHub repository"
         assert len(report)>=2,"Must test real success and real failure pages"
+
+        # Exercise the ACTUAL public Actions LIST pages used by the new
+        # HOME mini explorer. These are different URLs from specific runs.
+        # The scanner's fixed courtesy delay does not mimic or evade humans.
+        for repo in ("DashbordGit","JTrex"):
+            url=f"https://github.com/greenpower2669/{repo}/actions"
+            driver.get(url)
+            time.sleep(3)
+            page=driver.execute_script(READ_SCRIPT)
+            screenshot=OUT/(f"explore-{repo}.png")
+            driver.save_screenshot(str(screenshot))
+            item={
+                "label":"home-explorer",
+                "repo":repo,
+                "url":url,
+                "browserUrl":page["url"],
+                "title":page["title"],
+                "bodyLength":page["bodyLength"],
+                "linksVisible":len(page["runLinks"]),
+                "resourceEntries":page["browserResources"],
+                "apiGithubResources":page["browserApiResources"],
+                "png":screenshot.name,
+                "evidence":"Actual public Actions listing, not an iframe or fabricated fixture."
+            }
+            print(json.dumps(item,ensure_ascii=False,sort_keys=True))
+            report.append(item)
+            assert page["url"].startswith(url), "Chromium redirected from real public Actions list"
+            assert page["bodyLength"]>350, "Public Actions page failed to render in real Chrome"
+            time.sleep(3) # courtesy gap; never stealth traffic shaping
     finally:
         driver.quit()
     (OUT/"report.json").write_text(
