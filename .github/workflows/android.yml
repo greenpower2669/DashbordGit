@@ -5,6 +5,7 @@ on:
     branches: [ main, feature/web-first-supertonic3-v1 ]
 permissions:
   contents: read
+  actions: read
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,6 +18,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Fetch REAL GitHub public HTML fixtures and REST truth
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/fetch_real_github_actions_fixtures.py
       - name: Validate optional dashboard status JSON
         run: python3 scripts/test_dashboardgit_snapshot.py
       - name: Cache Sherpa-ONNX and Supertonic 3 only
@@ -49,6 +55,16 @@ jobs:
           du -sh app/src/main/assets/tts/supertonic3 app/libs/sherpa-onnx-1.13.8.aar
       - name: Verify Web status parser and compile Android
         run: gradle :app:testDebugUnitTest :app:assembleDebug
+      - name: Publish real-page validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DashbordGit-real-page-test-results
+          path: |
+            app/build/test-results/testDebugUnitTest
+            app/build/reports/tests/testDebugUnitTest
+            app/src/test/resources/github_live/manifest.json
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
           name: DashbordGit-debug-apk
