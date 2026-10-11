@@ -26,6 +26,11 @@ class GithubMosaicTargetsTest {
         }
     }
 
+    @Test fun initialMosaicDefaultsToTheLatestPublicActionsList() {
+        assertEquals(GithubMosaicTargets.Kind.ACTIONS,GithubMosaicTargets.kind(null))
+        assertEquals(GithubMosaicTargets.Kind.ACTIONS,GithubMosaicTargets.kind("INVALID"))
+    }
+
     @Test fun missingRunUsesOfficialActionsPageNotFabricatedId() {
         assertEquals("https://github.com/greenpower2669/GeckoDoku/actions",
             GithubMosaicTargets.target("GeckoDoku",GithubMosaicTargets.Kind.RUN,-1,null))
