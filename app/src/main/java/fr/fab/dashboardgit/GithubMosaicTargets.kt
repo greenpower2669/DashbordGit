@@ -13,7 +13,7 @@ object GithubMosaicTargets {
     private val shaRegex=Regex("[0-9a-fA-F]{40}")
 
     fun kind(value:String?):Kind =
-        runCatching { Kind.valueOf(value ?: "") }.getOrDefault(Kind.RUN)
+        runCatching { Kind.valueOf(value ?: "") }.getOrDefault(Kind.ACTIONS)
 
     fun target(repo:String,kind:Kind,runId:Long?,sha:String?):String {
         require(repoRegex.matches(repo)) { "Nom de dépôt invalide" }
