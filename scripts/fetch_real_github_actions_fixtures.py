@@ -56,6 +56,12 @@ def main():
         assert status=="completed" and conclusion==expected, (
             f"Reference status changed unexpectedly for run {run_id}: {status}/{conclusion}"
         )
+        clean_api={key:api_json.get(key) for key in (
+            "id","status","conclusion","name","head_branch","display_title","html_url"
+        )}
+        (DEST/(f"api-{expected}-{run_id}.json")).write_text(
+            json.dumps(clean_api,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+        )
         html_code,html_final,html_raw=download(web,html=True)
         assert html_code==200 and len(html_raw)>10_000, (
             f"Real HTML unavailable for {run_id}: HTTP {html_code}, {len(html_raw)} bytes"
