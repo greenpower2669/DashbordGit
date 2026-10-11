@@ -580,7 +580,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         // Chromium may still be traversing real pages. Await its finish;
         // offering REST earlier would waste quota for statuses it can prove.
         if(homePreview?.isExploring()==true) {
-            info.append("\nChromium termine l'exploration, puis vérification des inconnus.")
+            // No repeated banner/message on each individual run evidence.
+            // The onFinished callback will offer REST only if still useful.
             return
         }
         val unknown=selected.filter { repo ->
