@@ -63,6 +63,31 @@ class GithubDomEvidenceTest {
             merged.getJSONArray("runs").getJSONObject(0).getString("status"))
     }
 
+    @Test fun unreadableNewestRunHidesPreviousGreen() {
+        val lastSuccess=JSONObject().put("id",100L)
+            .put("status","completed").put("conclusion","success")
+        val before=JSONObject().put("repo",repo)
+            .put("runs",JSONArray().put(lastSuccess))
+        val rows=JSONArray().put(JSONObject()
+            .put("id","101")
+            .put("url","https://github.com/greenpower2669/DashbordGit/actions/runs/101")
+            .put("label","Unknown accessible label, no supported status"))
+            .put(JSONObject()
+            .put("id","100")
+            .put("url","https://github.com/greenpower2669/DashbordGit/actions/runs/100")
+            .put("label","completed successfully: old success"))
+        val evidence=GithubDomEvidence.parseWebViewResponse(repo,
+            "https://github.com/greenpower2669/DashbordGit/actions",
+            JSONObject.quote(rows.toString()))
+        assertEquals(2,evidence.size)
+        assertEquals(101L,evidence.first().runId)
+        assertFalse(evidence.first().verified)
+        val shown=GithubDomEvidence.merge(before,evidence.first())
+        assertEquals(101L,shown.getJSONArray("runs").getJSONObject(0).getLong("id"))
+        assertFalse(GithubWorkflowStatus.classify(
+            shown.getJSONArray("runs").getJSONObject(0)).verified)
+    }
+
     @Test fun olderGreenCannotOverwriteNewerRun() {
         val snapshot=JSONObject().put("repo",repo)
             .put("runs",JSONArray().put(JSONObject().put("id",60L)
