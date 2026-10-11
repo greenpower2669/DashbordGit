@@ -2,7 +2,7 @@ name: Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, feature/web-first-supertonic3-v1 ]
+    branches: [ main, feature/web-first-supertonic3-v1, feature/dashgit-chromium-mosaic-001 ]
 permissions:
   contents: read
   actions: read
