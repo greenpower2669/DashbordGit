@@ -171,8 +171,10 @@ class HomeExplorerPreview(
         }
         busy=true
         title.text="Exploration 0 / "+visits.size+" · démarrage manuel"
-        details.text="Parcours visible : "+visits.size+" pages GitHub Actions. "+
-            "Le scanner de données du Dashboard reste indépendant."
+        val omitted=(repositories.size-visits.size).coerceAtLeast(0)
+        details.text="Parcours visible : "+visits.size+" pages GitHub Actions."+
+            (if(omitted>0) " "+omitted+" autre(s) non chargée(s) (limite de 12)." else "")+
+            " Lecture de données Dashboard indépendante."
         requests.text="Aucun appel REST explicite. Les pages Chromium utilisent leur réseau."
         log("Démarrage manuel de la mini-exploration : "+visits.size+
             " pages (une WebView, délai fixe de courtoisie "+
@@ -292,8 +294,9 @@ class HomeExplorerPreview(
                 if(message.message()=="DASHGIT_MINI_DOM" &&
                     SystemClock.elapsedRealtime()-lastDomSignal>3500L) {
                     lastDomSignal=SystemClock.elapsedRealtime()
-                    if(!destroyed && web===browser) {
-                        title.text="🔵 Activité DOM GitHub — "+(current?.repository ?: "page")
+                    if(!destroyed && web===browser && busy) {
+                        title.text="🔵 "+nextIndex+" / "+visits.size+
+                            " — "+(current?.repository ?: "page")+" · DOM actif"
                         log("Mutation DOM observée dans l'aperçu (pas un changement de build prouvé)")
                     }
                     return true
