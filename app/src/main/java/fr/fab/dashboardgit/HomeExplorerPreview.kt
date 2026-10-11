@@ -146,6 +146,16 @@ class HomeExplorerPreview(
         }
     }
 
+    private fun matchesVisit(url:String?,visit:GithubExplorerPlan.Visit):Boolean {
+        if(url.isNullOrBlank())return false
+        return runCatching {
+            val actual=Uri.parse(url)
+            val expected=Uri.parse(visit.url)
+            actual.scheme=="https" && actual.host=="github.com" &&
+                actual.path?.trimEnd('/')==expected.path?.trimEnd('/')
+        }.getOrDefault(false)
+    }
+
     private fun placeholder() {
         frame.removeAllViews()
         frame.addView(TextView(activity).apply {
@@ -252,6 +262,7 @@ class HomeExplorerPreview(
             count+" ressources, api.github.com="+apiCount+", "+duration+" ms")
         if(blocked) {
             busy=false
+            web?.stopLoading()
             title.text="⚪ GitHub limite ou refuse l'accès — parcours arrêté"
             details.text=message+" Aucun contournement ou nouvelle tentative automatique."
             return
@@ -310,10 +321,15 @@ class HomeExplorerPreview(
             ):Boolean {
                 if(!request.isForMainFrame)return false
                 val next=request.url.toString()
-                val allowed=GithubMosaicTargets.isGithubPage(next)
-                if(!allowed || next!=current?.url) {
-                    details.text="Navigation différente de la page suivie : rester sur l'aperçu "+
-                        "ou utiliser AGRANDIR pour explorer librement."
+                if(next.startsWith("https://github.com/login")) {
+                    settle(generation,
+                        "🔐 Connexion GitHub nécessaire. Utilise le navigateur externe.",true)
+                    return true
+                }
+                val visit=current
+                if(visit==null || !matchesVisit(next,visit)) {
+                    details.text="Navigation hors de la cible du mini-scanner : "+
+                        "ouvrir la mosaïque pour naviguer librement."
                     return true
                 }
                 return false
@@ -329,7 +345,7 @@ class HomeExplorerPreview(
 
             override fun onPageFinished(view:WebView,url:String?) {
                 val visit=current ?: return
-                if(!busy || pageSettled || web!==browser || url!=visit.url)return
+                if(!busy || pageSettled || web!==browser || !matchesVisit(url,visit))return
                 focusActualActions(browser)
                 watchExistingDom(browser)
                 settle(generation,
