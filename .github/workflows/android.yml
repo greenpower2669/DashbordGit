@@ -23,6 +23,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 scripts/fetch_real_github_actions_fixtures.py
+      - name: Observe real GitHub pages in Chromium (no reload)
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 -m pip install --user 'selenium==4.37.0'
+          python3 scripts/probe_real_chromium_github.py
       - name: Validate optional dashboard status JSON
         run: python3 scripts/test_dashboardgit_snapshot.py
       - name: Cache Sherpa-ONNX and Supertonic 3 only
@@ -64,6 +71,13 @@ jobs:
             app/build/test-results/testDebugUnitTest
             app/build/reports/tests/testDebugUnitTest
             app/src/test/resources/github_live/manifest.json
+          if-no-files-found: warn
+      - name: Publish real Chromium observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DashbordGit-Chromium-real-observation
+          path: build/chromium-live
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
