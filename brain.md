@@ -21,3 +21,12 @@
 - Erreurs WebView, auth externe, HTTP 403/429 et perte du renderer : message explicite ; protections GitHub respectées et arrêt en cas de limitation. L'aperçu n'infère aucun état vert/rouge d'une simple mutation DOM.
 - Départ uniquement sur une action utilisateur, bouton activation pour couper, libération des ressources au passage vers la mosaïque ou une autre application. MainActivity garde ses données locales, ses sauvegardes et Supertonic 3.
 - Capture Chrome headless réelle en CI de `https://github.com/greenpower2669/DashbordGit/actions` et `.../JTrex/actions`, rendu confirmé. **Ce test Chrome ne valide pas encore Android WebView Samsung.**
+
+## DASHGIT-DOM-SCROLL-CONSENT-003 — corrections Android
+
+- Accueil : les cartes possèdent un emplacement stable (LinearLayout), initialisé avec le cache et conservé durant ACTUALISER ; chaque résultat Web/Chromium/API remplace seulement le contenu du dépôt concerné. L'interface de défilement ne doit plus se vider pendant la décision API.
+- `HomeExplorerPreview.kt` lit depuis une vraie page WebView les attributs `aria-label` du lien exact `/greenpower2669/<repo>/actions/runs/<id>`, par le script partagé `app/src/main/assets/github_dom_evidence.js`. Aucun fetch/REST ajouté par ce script ; extraction du DOM local uniquement.
+- `GithubDomEvidence.kt` vérifie URL, dépôt, ID, libellé explicite et date d'observation. Sens prouvés sur de vraies pages GitHub : `completed successfully:` => succès, `currently running:` => en cours, `failed:` => échec. Cas non prouvé => état gris. Un run récent inconnu masque un ancien succès ; une ancienne réussite ne peut jamais écraser un ID supérieur.
+- Les preuves DOM alimentent MainActivity pendant l'exploration, avec séparation des états historiques (cache = DERNIER CONNU) et des états fraîchement observés. L'API n'est proposée qu'après la visite Chromium et la lecture Web, et uniquement pour les inconnus restants.
+- Demande REST **non modale et explicite dans l'accueil** : `CONTINUER SANS API` ou `AUTORISER CETTE VÉRIFICATION`. Option de mémorisation décochée par défaut. Si mode WEB strict : choix `ACTIVER LE MODE DEMANDE`, jamais appel sans changement explicite. Tous les autres dialogues API ont un vrai bouton `REFUSER`.
+- Le moteur vocal Supertonic 3 et la mosaïque en pleine page ne sont pas modifiés. Vérification physique de la ScrollView sur Samsung requise avant réussite fonctionnelle complète.

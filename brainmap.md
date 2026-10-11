@@ -30,3 +30,14 @@ Branche `feature/dashgit-home-explorer-002`, créée à partir de `feature/dashg
 - `MainActivity.kt` : insertion de la mini-fenêtre et démarrage exclusivement sur ACTUALISER, anti-doublon des actualisations.
 - `scripts/probe_real_chromium_github.py` : vérification additionnelle dans Chrome réel des pages Actions DashbordGit et JTrex.
 - `docs/DASHGIT-HOME-EXPLORER-002.md` : contrat, résultats, contraintes et tests restant à faire.
+
+## Correction suivante — DOM/SCROLL/CONSENT-003
+
+Branche `feature/dashgit-dom-scroll-consent-003`, issue de `feature/dashgit-home-explorer-002`. Ne pas merger `main`.
+
+- `app/src/main/assets/github_dom_evidence.js` : extraction accessible réelle des liens directs vers les builds.
+- `GithubDomEvidence.kt` et `GithubDomEvidenceTest.kt` : preuve sémantique liée au run et fusion conservatrice, protection contre ancien vert.
+- `HomeExplorerPreview.kt` : callback à chaque observation DOM vérifiée et signal de fin de visite, sans polling.
+- `MainActivity.kt` : cartes permanentes et défilables pendant les requêtes, vrais boutons refus/autorisation REST et merge DOM.
+- `scripts/probe_real_chromium_github.py` : exécution du même JavaScript sur des pages publiques actuelles dans Chrome CI ; comparaison au statut GitHub officiel.
+- `docs/DASHGIT-DOM-SCROLL-CONSENT-003.md` : rapport, critères et tests restants.

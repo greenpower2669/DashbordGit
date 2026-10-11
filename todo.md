@@ -30,3 +30,18 @@
 - [ ] Mesurer RAM et trafic réellement consommés par l'aperçu vs ancien Dashboard, réduire volume si trop coûteux.
 - [ ] Préserver compatibilité sauvegardes, API sur consentement, barre quota, Supertonic 3, mosaïque pleine page.
 - [ ] Pas de merge main, release ni publication Play sans autorisation.
+
+## Correctifs 003 — tests et tâches
+
+- [x] Brancher le vrai DOM Chromium en lecture seule sur le Dashboard avec contrôle strict ID+URL et aria-label.
+- [x] Ajouter des cas de test sur vrai succès / en cours / échec, anti-faux-vert et run plus récent inconnu.
+- [x] Conserver les cartes lors d'ACTUALISER ; actualiser chaque projet indépendamment sans vider la ScrollView.
+- [x] Ajouter le choix non modal **CONTINUER SANS API** / **AUTORISER CETTE VÉRIFICATION** après les preuves Chromium.
+- [x] Ajouter bouton **REFUSER** explicite dans les autres consentements API ; persistance seulement sur consentement volontaire.
+- [ ] Dernier job CI Android/JVM et inspection de la correspondance DOM des vraies pages, puis vérification du bon APK du même commit.
+- [ ] **Test matériel Samsung** : six projets visibles et défilables pendant le scan ; glissement du bas indépendant du petit navigateur, cartes lisibles avant décision API.
+- [ ] Cliquer CONTINUER SANS API : zéro REST direct supplémentaire, aucun popup bloquant, couleurs déjà vérifiées toujours affichées.
+- [ ] Tester autorisation API : une vérification par projet encore inconnu, refus possible à chaque nouvelle demande, barres API correctes.
+- [ ] Observer build en cours devenant terminé dans WebView : enregistrer le statut seulement si GitHub modifie réellement son DOM ; sinon recharger manuellement.
+- [ ] Tester changement de page, authentification, 403/429, reprise après pause, sérialisation de plusieurs ACTUALISER, consommation RAM et réseau.
+- [ ] Conserver Supertonic 3, import/export, mosaïque et journaux identiques ; ne pas merger `main`.

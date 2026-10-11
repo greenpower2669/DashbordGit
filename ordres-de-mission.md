@@ -17,3 +17,11 @@ Ajouter une fenêtre Chromium *réelle et miniature* sur la première page du lo
 La lecture HTTP/JSON/API et le navigateur visible sont indépendants ; annoncer les requêtes supplémentaires du navigateur. Pas de faux statut, pas de promesse de rafraîchissement spontané non prouvée. Valider sur pages réelles en Chrome CI puis sur Android appareil.
 
 Développer/pousser seulement sur `feature/dashgit-home-explorer-002` ; garder `main`, releases et Play inchangés.
+
+## Extension avec accord explicite — DASHGIT-DOM-SCROLL-CONSENT-003
+
+Fab valide le code sur les quatre erreurs du 11 octobre 2026 : exploiter l'ARIA du vrai DOM Chromium au lieu d'afficher seulement des inconnus ; afficher les cartes progressivement et conserver le défilement ; offrir une vraie décision REFUSER/ACCEPTER API sans bloquer l'écran ; maintenir la mini-WebView interactive indépendante.
+
+Critères de qualité : vraie page GitHub testée avec le même script que le téléphone, preuve attachée au bon ID de run, jamais une ancienne réussite affichée comme état actuel si build plus récent existe. Sources et dates visibles. Autorisation REST explicite, refus réellement fonctionnel ; aucune imitation « humaine » visant à contourner les protections GitHub. Pas de modification du moteur Supertonic 3.
+
+Branche `feature/dashgit-dom-scroll-consent-003` ; **aucun merge main, release ni Play Store sans accord de Fab**. Les tests JVM/Chrome CI ne prouvent pas le scrolling Android sans essai utilisateur.

@@ -24,6 +24,16 @@ Une fenêtre **réelle et minuscule** (WebView de 135dp de haut) sur la premièr
 
 Détails et tests : `docs/DASHGIT-HOME-EXPLORER-002.md`.
 
+## Correctifs 0.5.2-dev — DOM réel, défilement et refus API
+
+- Le même script `github_dom_evidence.js` examine dans la vraie WebView les noms accessibles des liens de run GitHub : succès / échec / en cours par **ID exact**, sans interpréter une couleur ni émettre de requête REST.
+- Les cartes de projets restent visibles et la ScrollView est conservée pendant le scan. Chaque projet est actualisé dès qu'une preuve arrive.
+- Si le Web et la WebView ne prouvent pas un état, un encart **non modal** propose **CONTINUER SANS API** et **AUTORISER CETTE VÉRIFICATION** ; option de mémorisation désactivée par défaut.
+- Un run récent inconnu masque les anciens verts, le cache apparaît « DERNIER CONNU ».
+- Les libellés ont été vérifiés dans de vraies pages GitHub via Chrome CI. Test final des gestes et scroll sur Samsung nécessaire.
+
+Rapport : `docs/DASHGIT-DOM-SCROLL-CONSENT-003.md`.
+
 ## Règles de développement
 
-Branche : `feature/dashgit-home-explorer-002` (base `feature/dashgit-chromium-mosaic-001`). **Aucun merge main ni release** sans validation de Fab. Données d'authentification jamais versionnées ; journaux exempts de cookies/secrets. Les statuts inconnus restent gris.
+Branche : `feature/dashgit-dom-scroll-consent-003` (base `feature/dashgit-chromium-mosaic-001`). **Aucun merge main ni release** sans validation de Fab. Données d'authentification jamais versionnées ; journaux exempts de cookies/secrets. Les statuts inconnus restent gris.

@@ -18,3 +18,13 @@
 - Vrai Chrome en CI : liste Actions DashbordGit rendue (4564 caractères, 12 liens visibles, 150 ressources observées dont 1 vers api.github.com) ; JTrex Actions rendue (5023 caractères, 12 liens visibles, 148 ressources dont 1 vers api.github.com). Ce ne sont pas des mesures WebView Android.
 - Première compilation #58 échouée sur une faute Kotlin `loadsImages` non supportée ; correction `loadsImagesAutomatically` commit `4281bc9c`. Les builds intermédiaires ont pu reprendre la même erreur.
 - Vérifier le dernier build après mise à jour des mémoires et conserver la preuve CI ; ne jamais annoncer une capacité Android réelle seulement sur une compilation verte.
+
+## Diagnostic et corrections 003 — 11/10/2026
+
+- Capture/journal Fab 13:19–13:20 : six projets visités, codes couleur visibles dans la mini-WebView ; ancienne lecture HTML non capable de confirmer les statuts. 347 ressources navigateur observées, 5 vers api.github.com dans ce parcours, 0 API Dashboard explicitement autorisée.
+- Problème liste blanche : MainActivity vidait `list` puis n'affichait les cartes qu'après la proposition REST, rendant le défilement inutilisable durant le scan. Correction : holders persistants + mise à jour progressive, dates d'anciennes données distinguées.
+- Problème consentement : ancien `setItems` dans une popup, options et REFUSER peu visibles ; remplacement par choix REST non modal dans la première page, boutons explicites refus/accord, option persistante volontaire. Autres demandes API ont boutons positifs/négatifs explicites.
+- **VRAIE PAGE** GitHub Actions DashbordGit : aria sur ancre de build `currently running: Run 65...`, `completed successfully: Run 64...`; JTrex : `completed successfully: Run 115...`, `failed: Run 114...`. Les libellés et URLs exactes ont été observés par Chrome CI sur vraies pages ; comparaison faite avec REST CI, jamais avec un HTML inventé.
+- Un build plus récent sans aria exploitable passe gris et masque l'ancien vert. Extraction locale du DOM WebView sans requête REST ajoutée ; statut à confirmer sur téléphone Samsung.
+- Les couleurs visuelles seules ne constituent pas une preuve. GitHub peut modifier ses aria-label : garder le gris et le fallback consentement API si la structure change.
+- La compilation verte n'atteste pas du toucher/défilement ni du résultat spontané Android : test réel requis.
