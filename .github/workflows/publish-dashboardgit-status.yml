@@ -1,0 +1,56 @@
+name: Publish DashbordGit public status
+on:
+  workflow_run:
+    workflows: ["Android APK"]
+    types: [requested, in_progress, completed]
+permissions:
+  contents: write
+concurrency:
+  group: dashboardgit-public-status
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.repository.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 1
+      - name: Read previous public status
+        shell: bash
+        run: |
+          if git fetch origin dashboardgit-status; then
+            git show FETCH_HEAD:.dashboardgit.json > "$RUNNER_TEMP/previous.json" || true
+          fi
+      - name: Generate event-only status file
+        shell: bash
+        env:
+          REPOSITORY: ${{ github.repository }}
+          EVENT_FILE: ${{ github.event_path }}
+        run: |
+          python3 scripts/test_dashboardgit_snapshot.py
+          python3 scripts/build_dashboardgit_snapshot.py \
+            --event "$EVENT_FILE" \
+            --repository "$REPOSITORY" \
+            --previous "$RUNNER_TEMP/previous.json" \
+            --output "$RUNNER_TEMP/.dashboardgit.json"
+      - name: Publish without rebuilding the application
+        shell: bash
+        run: |
+          git config user.name "DashbordGit status bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git show-ref --verify --quiet refs/remotes/origin/dashboardgit-status; then
+            git checkout -B dashboardgit-status origin/dashboardgit-status
+          else
+            git checkout --orphan dashboardgit-status
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+          cp "$RUNNER_TEMP/.dashboardgit.json" .dashboardgit.json
+          git add .dashboardgit.json
+          if git diff --cached --quiet; then
+            echo "Status unchanged"
+          else
+            git commit -m "status: publish latest GitHub Actions state"
+            git push origin HEAD:dashboardgit-status
+          fi

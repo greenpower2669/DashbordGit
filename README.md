@@ -1,21 +1,39 @@
-# DashbordGit
+# DashbordGit — Android
 
-Dashboard Android accessible pour suivre les projets GitHub de greenpower2669.
+Tableau de bord Android accessible pour suivre les projets GitHub publics de `greenpower2669`.
 
-## Objectif V1
-- scan des dépôts publics ;
-- choix dans l'engrenage des projets à suivre ;
-- affichage des branches récemment actives ;
-- rafraîchissement **uniquement manuel** ;
-- lecture des derniers GitHub Actions : vert, en cours, rouge ;
-- affichage du message du commit à côté de chaque résultat ;
-- artefacts APK/AAB lorsqu'ils sont disponibles ;
-- lecture vocale au toucher d'une carte ;
-- voix féminine locale, avec architecture prévue pour Sherpa-ONNX / Kokoro ;
-- token GitHub facultatif saisi localement, jamais versionné.
+## Dashboard principal — conservé
 
-## Contrat facultatif
-Un projet pourra fournir `.dashboardgit.json`. S'il est absent, l'application fonctionne en mode découverte et ne suppose jamais qu'un rouge est volontaire.
+- Projets sélectionnés et sauvegardés ; bouton **ACTUALISER** exclusivement manuel.
+- Sources Web + JSON public éventuel ; API REST seulement selon autorisation explicite et jauge de quota horodatée.
+- Statuts vert/rouge/en cours/attente/inconnu sans fausse réussite ; cartes parlantes.
+- Supertonic 3 INT8 seul : voix 1, seed 2026, morcellement désactivé par défaut et paramétrable dans ⚙.
+- Import/export de sauvegardes et de journaux debug.
 
-## Sécurité
-Aucun token, mot de passe ou secret dans le dépôt.
+## Nouveau — 🧩 MOSAÏQUE CHROMIUM (développement 0.5.0)
+
+L'écran principal ouvre une mosaïque WebView native (Android Chromium) : **les vraies pages GitHub**, pas des iframes, accessibles sans API REST explicite depuis le Dashboard. La mosaïque ne charge rien avant un clic utilisateur. Par carte : 🔄 individuel, choix de cible GitHub Actions / dernier run connu / commit, titre parlable, double tap vers « Ouvrir avec », appui long pour recharger. Bouton général pour recharger séquentiellement les cartes.
+
+Défaut : trois fenêtres actives au plus (choix 2/3/4/6), les anciennes représentées par des **captures figées clairement identifiées**. Texte agrandi et cadrage sur la zone utile lorsque détectable. Les pages peuvent modifier leur DOM et émettre des requêtes réseau internes ; le Dashboard n'ajoute aucun polling.
+
+**La mise à jour spontanée d'un workflow jusqu'au statut final n'est pas prouvée sur Android.** Tests navigateur Chrome réel en CI sur pages GitHub publiques, avec rapport de ressources et captures ; voir `docs/DASHGIT-CHROMIUM-001.md`. Les contenus HTML et comportements Chrome/WebView peuvent différer. Accès privé/login : fallback navigateur externe.
+
+## Nouveau — mini-explorateur Chromium sur l'accueil (0.5.1-dev)
+
+Une fenêtre **réelle et minuscule** (WebView de 135dp de haut) sur la première page montre les pages GitHub Actions pendant une actualisation **manuelle**. Compteur de visites et de ressources, action pause/activer, bouton agrandir vers la mosaïque. Un seul navigateur réutilisé, maximum 12 pages par clic, 3 secondes minimum entre pages, timeout 20s ; stop sur HTTP403/429, pas de polling ni déguisement pour contourner les protections. Le scan des données existant continue indépendamment et le navigateur ajoute du trafic Web : aucun statut de build n'est inventé.
+
+Détails et tests : `docs/DASHGIT-HOME-EXPLORER-002.md`.
+
+## Correctifs 0.5.2-dev — DOM réel, défilement et refus API
+
+- Le même script `github_dom_evidence.js` examine dans la vraie WebView les noms accessibles des liens de run GitHub : succès / échec / en cours par **ID exact**, sans interpréter une couleur ni émettre de requête REST.
+- Les cartes de projets restent visibles et la ScrollView est conservée pendant le scan. Chaque projet est actualisé dès qu'une preuve arrive.
+- Si le Web et la WebView ne prouvent pas un état, un encart **non modal** propose **CONTINUER SANS API** et **AUTORISER CETTE VÉRIFICATION** ; option de mémorisation désactivée par défaut.
+- Un run récent inconnu masque les anciens verts, le cache apparaît « DERNIER CONNU ».
+- Les libellés ont été vérifiés dans de vraies pages GitHub via Chrome CI. Test final des gestes et scroll sur Samsung nécessaire.
+
+Rapport : `docs/DASHGIT-DOM-SCROLL-CONSENT-003.md`.
+
+## Règles de développement
+
+Branche : `feature/dashgit-dom-scroll-consent-003` (base `feature/dashgit-chromium-mosaic-001`). **Aucun merge main ni release** sans validation de Fab. Données d'authentification jamais versionnées ; journaux exempts de cookies/secrets. Les statuts inconnus restent gris.
