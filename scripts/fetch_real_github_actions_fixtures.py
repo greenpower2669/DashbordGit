@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Integration input: REAL public GitHub HTML and GitHub API truth.
 
-Downloads a known successful and a known failed public workflow run.
+Downloads real successful, failed, and currently running public workflow runs.
 The API is used ONLY in CI as an independent verification reference;
 the Android app NEVER calls it without user consent.
 The HTML files are temporary test inputs and are NOT committed.
@@ -45,7 +45,12 @@ def main():
     DEST.mkdir(parents=True,exist_ok=True)
     token=os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     reports=[]
-    for expected,repo,run_id in CASES:
+    cases=list(CASES)
+    active_id=os.environ.get("GITHUB_RUN_ID","")
+    active_repo=os.environ.get("GITHUB_REPOSITORY","")
+    if active_id.isdigit() and active_repo=="greenpower2669/DashbordGit":
+        cases.append(("running",active_repo,int(active_id)))
+    for expected,repo,run_id in cases:
         api=f"https://api.github.com/repos/{repo}/actions/runs/{run_id}"
         web=f"https://github.com/{repo}/actions/runs/{run_id}"
         api_code,_,api_raw=download(api,token)
@@ -53,9 +58,15 @@ def main():
         status=api_json.get("status")
         conclusion=api_json.get("conclusion")
         assert api_json.get("id")==run_id, f"API run mismatch: {run_id}"
-        assert status=="completed" and conclusion==expected, (
-            f"Reference status changed unexpectedly for run {run_id}: {status}/{conclusion}"
-        )
+        if expected=="running":
+            assert status in ("queued","in_progress","pending","waiting"), (
+                f"Current CI run was unexpectedly already completed: {run_id} {status}/{conclusion}"
+            )
+            assert conclusion is None, "Running run unexpectedly has a conclusion"
+        else:
+            assert status=="completed" and conclusion==expected, (
+                f"Reference status changed unexpectedly for run {run_id}: {status}/{conclusion}"
+            )
         clean_api={key:api_json.get(key) for key in (
             "id","status","conclusion","name","head_branch","display_title","html_url"
         )}
@@ -75,7 +86,7 @@ def main():
         (DEST/(basename+".html")).write_bytes(html_raw)
         reports.append({
             "case":expected,"repo":repo,"runId":run_id,
-            "expectedStatus":status,"expectedConclusion":conclusion,
+            "expectedStatus":status,"expectedConclusion":conclusion or "",
             "url":web,"httpStatus":html_code,"bytes":len(html_raw),
             "sha256":hashlib.sha256(html_raw).hexdigest(),
             "redirected":html_final!=web,
@@ -86,7 +97,7 @@ def main():
         json.dumps(reports,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
     )
     print("REAL LIVE FIXTURES READY: "+str(len(reports))+
-          " (success and failure independently verified by REST in CI)")
+          " (success, failure, running verified by REST in CI)")
 
 if __name__=="__main__":
     main()
