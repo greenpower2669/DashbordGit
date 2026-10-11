@@ -63,6 +63,9 @@ class MosaicActivity : AppCompatActivity() {
     private var statsPageLoads=0
     private var statsResources=0
     private var statsBrowserApi=0
+    private var systemSpeech:android.speech.tts.TextToSpeech?=null
+    private var pendingSpeech:String?=null
+    private var voiceInitialized=false
 
     private inner class Tile(
         val repo:String,
@@ -274,15 +277,7 @@ class MosaicActivity : AppCompatActivity() {
             override fun onSingleTapConfirmed(event:MotionEvent):Boolean {
                 if(clickToSpeak) {
                     val text=tile.repo+". "+tile.label.text.toString()
-                    val speech=android.speech.tts.TextToSpeech(
-                        this@MosaicActivity,null
-                    )
-                    speech.language=Locale.FRANCE
-                    speech.speak(text,android.speech.tts.TextToSpeech.QUEUE_FLUSH,null,
-                        "mosaic-"+tile.repo)
-                    // Temporary system TTS is intentionally not kept: use
-                    // Android accessibility talkback for longer descriptions.
-                    mainHandler.postDelayed({ speech.shutdown() },6000L)
+                    speakHeader(text)
                 }
                 return true
             }
@@ -294,6 +289,34 @@ class MosaicActivity : AppCompatActivity() {
                 refreshOne(tile)
             }
         })
+    }
+
+    private fun speakHeader(text:String) {
+        // The main Dashboard still uses local Supertonic 3.
+        // This optional mosaic header uses system TTS for a lightweight
+        // accessibility cue while multiple Chromium views are active.
+        val speech=systemSpeech
+        if(speech==null) {
+            pendingSpeech=text
+            systemSpeech=android.speech.tts.TextToSpeech(this) { result ->
+                if(!alive)return@TextToSpeech
+                if(result==android.speech.tts.TextToSpeech.SUCCESS) {
+                    voiceInitialized=true
+                    systemSpeech?.language=Locale.FRANCE
+                    pendingSpeech?.let { pending ->
+                        systemSpeech?.speak(pending,
+                            android.speech.tts.TextToSpeech.QUEUE_FLUSH,null,"mosaic-header")
+                    }
+                    pendingSpeech=null
+                } else {
+                    log("TTS système mosaïque non disponible")
+                }
+            }
+        } else if(voiceInitialized) {
+            speech.speak(text,android.speech.tts.TextToSpeech.QUEUE_FLUSH,null,"mosaic-header")
+        } else {
+            pendingSpeech=text
+        }
     }
 
     private fun showPlaceholder(tile:Tile,message:String) {
@@ -721,6 +744,8 @@ class MosaicActivity : AppCompatActivity() {
             }
         }
         active.clear()
+        systemSpeech?.shutdown()
+        systemSpeech=null
         tiles.values.forEach {
             it.frozen?.recycle()
             it.frozen=null
