@@ -131,7 +131,7 @@ def main():
             print(json.dumps(data,ensure_ascii=False,sort_keys=True))
             if label!="current-ci-run":
                 assert later["bodyLength"]>500, "Real GitHub page did not render"
-                assert url.split("/actions/runs/")[0] in later["browserUrl"], "Navigation left GitHub repository"
+                assert url.split("/actions/runs/")[0] in later["url"], "Navigation left GitHub repository"
         assert len(report)>=2,"Must test real success and real failure pages"
     finally:
         driver.quit()
