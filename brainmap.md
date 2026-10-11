@@ -20,3 +20,13 @@ Branche active : `feature/dashgit-chromium-mosaic-001`. Base vérifiée : `featu
 - `docs/DASHGIT-CHROMIUM-001.md` : rapport expérimental complet
 
 Ne jamais confondre CI Android compilée, navigateur Chrome réel, et vraie validation WebView Samsung. Aucune observation ne prouve actuellement une transition de statut spontanée jusqu'à fin de run.
+
+## Nouvelle extension HOME-EXPLORER-002
+
+Branche `feature/dashgit-home-explorer-002`, créée à partir de `feature/dashgit-chromium-mosaic-001` ; aucun merge de `main`.
+
+- `HomeExplorerPreview.kt` : cadre miniature de la première page, une WebView réelle lazy, parcours séquentiel visibles, pause, bouton agrandir, instrumentation des requêtes.
+- `GithubExplorerPlan.kt` + test JVM : liste d'URL publiques strictes, 12 pages max, délai fixe de 3000 ms.
+- `MainActivity.kt` : insertion de la mini-fenêtre et démarrage exclusivement sur ACTUALISER, anti-doublon des actualisations.
+- `scripts/probe_real_chromium_github.py` : vérification additionnelle dans Chrome réel des pages Actions DashbordGit et JTrex.
+- `docs/DASHGIT-HOME-EXPLORER-002.md` : contrat, résultats, contraintes et tests restant à faire.

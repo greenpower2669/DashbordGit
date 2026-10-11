@@ -16,3 +16,17 @@
 - [ ] Vérifier MainActivity, sauvegardes, consentements API, jauge et Supertonic 3 inchangés.
 - [ ] Vérifier CI de tout dernier commit, livrer lien GitHub Actions/artefacts.
 - [ ] Aucun merge main ni publication/release avant accord explicite.
+
+## HOME-EXPLORER-002 — contrôle qualité à poursuivre
+
+- [x] Fenêtre mini WebView sur accueil, chargement uniquement par ACTUALISER, possibilité de désactiver/agrandir.
+- [x] Parcours GitHub Actions public sur une seule WebView, maximum 12 pages, délai fixe, timeout, arrêt sur 403/429.
+- [x] Capturer/contrôler dans Chrome réel les pages Actions de DashbordGit et JTrex, sans HTML fictif.
+- [x] Tests Kotlin des URL publiques et de la limite de navigation.
+- [ ] Confirmer le **dernier** build CI Android et vérifier l'artefact APK (pas juste un ancien vert).
+- [ ] Essai sur Samsung : aperçu 135dp, zoom/taille, boutons activer/pause/agrandir, parcours 6 projets, temps perçu, scrolling.
+- [ ] Vérifier compteurs WebView et logs, aucune requête WebView au lancement, aucune navigation après sortie de l'application.
+- [ ] Observer limitation GitHub 403/429 sans réessai automatique.
+- [ ] Mesurer RAM et trafic réellement consommés par l'aperçu vs ancien Dashboard, réduire volume si trop coûteux.
+- [ ] Préserver compatibilité sauvegardes, API sur consentement, barre quota, Supertonic 3, mosaïque pleine page.
+- [ ] Pas de merge main, release ni publication Play sans autorisation.

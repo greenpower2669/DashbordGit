@@ -18,6 +18,12 @@ Défaut : trois fenêtres actives au plus (choix 2/3/4/6), les anciennes représ
 
 **La mise à jour spontanée d'un workflow jusqu'au statut final n'est pas prouvée sur Android.** Tests navigateur Chrome réel en CI sur pages GitHub publiques, avec rapport de ressources et captures ; voir `docs/DASHGIT-CHROMIUM-001.md`. Les contenus HTML et comportements Chrome/WebView peuvent différer. Accès privé/login : fallback navigateur externe.
 
+## Nouveau — mini-explorateur Chromium sur l'accueil (0.5.1-dev)
+
+Une fenêtre **réelle et minuscule** (WebView de 135dp de haut) sur la première page montre les pages GitHub Actions pendant une actualisation **manuelle**. Compteur de visites et de ressources, action pause/activer, bouton agrandir vers la mosaïque. Un seul navigateur réutilisé, maximum 12 pages par clic, 3 secondes minimum entre pages, timeout 20s ; stop sur HTTP403/429, pas de polling ni déguisement pour contourner les protections. Le scan des données existant continue indépendamment et le navigateur ajoute du trafic Web : aucun statut de build n'est inventé.
+
+Détails et tests : `docs/DASHGIT-HOME-EXPLORER-002.md`.
+
 ## Règles de développement
 
-Branche : `feature/dashgit-chromium-mosaic-001`. **Aucun merge main ni release** sans validation de Fab. Données d'authentification jamais versionnées ; journaux exempts de cookies/secrets. Les statuts inconnus restent gris.
+Branche : `feature/dashgit-home-explorer-002` (base `feature/dashgit-chromium-mosaic-001`). **Aucun merge main ni release** sans validation de Fab. Données d'authentification jamais versionnées ; journaux exempts de cookies/secrets. Les statuts inconnus restent gris.

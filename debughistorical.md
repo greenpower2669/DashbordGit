@@ -11,3 +11,10 @@
 - Anciennes erreurs Web-only : parser HTML de statuts sur vraies pages 0/3, API indépendante 3/3 ; conservées. Ne jamais transformer gris en vert sans preuve.
 - Ancien site / app : 12 erreurs 404 JSON corrigées ; Supertonic 3 testé sur Samsung, SID1 seed2026 ; APK triplement vocal >380Mo remplacé par un seul modèle.
 - Liens sandbox auparavant indisponibles : préférer CI GitHub et vérifier physiquement toute pièce jointe.
+
+## HOME-EXPLORER-002 — contrôles du 11/10/2026
+
+- Requête utilisateur : voir en direct dans une toute petite fenêtre, sur la première page, le navigateur qui explore les dépôts. L'idée de timings « humains et aléatoires pour ne pas être détecté » n'est pas implémentée : aucun déguisement ou contournement de protections. Parcours borné, délai fixe et respect des 403/429.
+- Vrai Chrome en CI : liste Actions DashbordGit rendue (4564 caractères, 12 liens visibles, 150 ressources observées dont 1 vers api.github.com) ; JTrex Actions rendue (5023 caractères, 12 liens visibles, 148 ressources dont 1 vers api.github.com). Ce ne sont pas des mesures WebView Android.
+- Première compilation #58 échouée sur une faute Kotlin `loadsImages` non supportée ; correction `loadsImagesAutomatically` commit `4281bc9c`. Les builds intermédiaires ont pu reprendre la même erreur.
+- Vérifier le dernier build après mise à jour des mémoires et conserver la preuve CI ; ne jamais annoncer une capacité Android réelle seulement sur une compilation verte.
