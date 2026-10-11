@@ -18,6 +18,9 @@ class GithubDomEvidenceTest {
         val running=GithubDomEvidence.fromAccessibleLabel(repo,run,url,
             "currently running:  Run 64 of Android APK.")
         assertEquals("in_progress",running?.status)
+        val failure=GithubDomEvidence.fromAccessibleLabel(repo,run,url,
+            "failed:  Run 71 of Android APK.")
+        assertEquals("failure",failure?.conclusion)
     }
 
     @Test fun unrelatedColorOrWrongRunCannotClaimSuccess() {
