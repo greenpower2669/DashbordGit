@@ -142,6 +142,31 @@ def main():
             driver.get(url)
             time.sleep(3)
             page=driver.execute_script(READ_SCRIPT)
+            # Inspect REAL GitHub DOM semantics around each run link.
+            # No fabricated fixture: the output tells Android extractor which
+            # precise run-scoped accessibility metadata GitHub actually emits.
+            semantic=driver.execute_script("""
+              return Array.from(document.querySelectorAll('a[href*="/actions/runs/"]'))
+               .slice(0,4).map(function(a){
+                 var target=a.closest('li,article,[role="row"],.Box-row,.ActionList-item')||a.parentElement?.parentElement||a;
+                 var icon=target.querySelector('svg');
+                 return {
+                   href:a.getAttribute('href'),
+                   text:(target.innerText||'').slice(0,550),
+                   aria:Array.from(target.querySelectorAll('[aria-label],[title]'))
+                     .slice(0,20).map(x=>({
+                         tag:x.tagName,aria:x.getAttribute('aria-label'),
+                         title:x.getAttribute('title'),
+                         className:typeof x.className==='string'?x.className:''
+                       })),
+                   svg:icon?{className:icon.getAttribute('class'),
+                             aria:icon.getAttribute('aria-label'),
+                             dataTestid:icon.getAttribute('data-testid')}:{},
+                   sampleHTML:target.outerHTML.slice(0,2500)
+                 };
+               });
+            """)
+            print("REAL_ACTIONS_DOM "+repo+" "+json.dumps(semantic,ensure_ascii=False))
             screenshot=OUT/(f"explore-{repo}.png")
             driver.save_screenshot(str(screenshot))
             item={
