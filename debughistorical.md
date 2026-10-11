@@ -16,3 +16,9 @@ Tests CI branche #84 verts, Chrome réel status success/failure/in_progress test
 ## Problèmes non prouvés / limites
 - Scrolling et gestes (titre/WebView) selon appareil, performances mémoire/batterie ; transitions spontanées de GitHub à observer pendant vrai build.
 - Build CI vert ≠ certification UX Android. Debug APK signé par clé de test CI : une installation par-dessus un ancien APK de signature différente peut échouer.
+
+## Publication confirmée — 11/10/2026
+- PR #1 fusionnée dans main à `241319d43fc965da6d688a4c7616a9de3a06ea27`. Branche CI #88, main CI #89 : succès.
+- GitHub prerelease `v0.5.2` : https://github.com/greenpower2669/DashbordGit/releases/tag/v0.5.2 ; APK `DashbordGit-v0.5.2-debug.apk` (183 337 153 octets), `SHA256SUMS.txt` (100 octets).
+- Le fichier JSON `dashboardgit-status/.dashboardgit.json` est réellement publié et est passé de `in_progress` à `completed/success` pour le build #89.
+- APK debug uniquement, non signé par clé permanente Google Play. Le défilement et les gestes Samsung ne sont pas clos.

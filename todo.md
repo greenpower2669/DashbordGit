@@ -3,10 +3,10 @@
 ## Livraison autorisée le 11/10/2026
 - [x] Fab a donné son accord explicite pour fusionner et publier une GitHub Release.
 - [x] Tests Android/Chrome de la branche #84 réussis ; journal Samsung confirme 3 vrais statuts success.
-- [ ] Vérifier PR/merge main et dernier commit intégré (ne jamais présumer la fusion).
-- [ ] Vérifier CI **main**, sa compilation et les tests réels.
-- [ ] Vérifier création **GitHub prerelease v0.5.2**, APK `DashbordGit-v0.5.2-debug.apk`, fichier SHA256, taille et lien.
-- [ ] Vérifier que le producteur JSON `dashboardgit-status` est réellement actif avant de dire qu'il publie.
+- [x] PR #1 fusionnée dans main, commit `241319d43fc965da6d688a4c7616a9de3a06ea27` vérifié.
+- [x] CI main #89 (run `38140968511`) terminée `success`, tests Android + Chrome.
+- [x] GitHub prerelease `v0.5.2` publiée, APK debug 183 337 153 octets et SHA256 vérifiés.
+- [x] JSON public `dashboardgit-status` actif ; build #89 désormais `completed/success`.
 
 ## À améliorer / tester sur le téléphone
 - [ ] **Défilement des cartes** pendant/à la fin du scan, mini-fenêtre non bloquante, agrandissement et appui long/double tap.

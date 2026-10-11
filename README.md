@@ -36,4 +36,4 @@ Rapport : `docs/DASHGIT-DOM-SCROLL-CONSENT-003.md`.
 
 ## Règles de développement
 
-Branche : `feature/dashgit-dom-scroll-consent-003` (base `feature/dashgit-chromium-mosaic-001`). **Aucun merge main ni release** sans validation de Fab. Données d'authentification jamais versionnées ; journaux exempts de cookies/secrets. Les statuts inconnus restent gris.
+**Publié le 11/10/2026 :** PR #1 fusionnée dans `main` (`241319d43`), build #89 vert. GitHub **prerelease `v0.5.2`** : https://github.com/greenpower2669/DashbordGit/releases/tag/v0.5.2 ; APK **debug ARM64**, SHA256 joint. Pas de Google Play. Le défilement/les gestes restent dans `todo.md` ; toute future fusion ou release requiert un nouvel accord.

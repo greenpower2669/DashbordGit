@@ -1,6 +1,6 @@
 # DashbordGit — mémoire technique active v0.5.2
 
-État : Fab a autorisé **fusion dans main et GitHub Release v0.5.2** (11/10/2026). Le workflow de release doit publier un **APK de test debug** seulement après CI verte sur main. Google Play/AAB signé : **non autorisé, non réalisé**.
+**Release exécutée le 11/10/2026** : PR #1 fusionnée dans `main` au commit `241319d43fc965da6d688a4c7616a9de3a06ea27`. CI main #89 (run `38140968511`) **verte** ; GitHub **prerelease `v0.5.2` publiée** avec APK de test debug de 183 337 153 octets et `SHA256SUMS.txt`. Fichier public `.dashboardgit.json` réel et mis à jour (`completed/success`). Google Play/AAB signé : **non autorisé**.
 
 ## Architecture actuelle
 - Android Kotlin, application `fr.fab.dashboardgit`, arm64, Supertonic 3 INT8 FR (SID 1, seed 2026), découpage désactivé par défaut et paramétrable. Import/export et journal local préservés.

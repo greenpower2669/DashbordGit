@@ -1,6 +1,6 @@
 # DashbordGit — brainmap active
 
-**Version visée : v0.5.2**, merge + GitHub prerelease **autorisés le 11/10/2026**. Branche source : `feature/dashgit-dom-scroll-consent-003`; `main` cible. La publication Play Store n'est pas incluse.
+**v0.5.2 publiée le 11/10/2026** : PR #1 fusionnée sur `main` (`241319d43`), CI #89 verte, prerelease GitHub vérifiée. Branche de travail `feature/dashgit-dom-scroll-consent-003` conservée ; pas de publication Play.
 
 - `brain.md` : modèle d'architecture et invariants fonctionnels.
 - `todo.md` : points non validés et étapes après release.
@@ -13,4 +13,4 @@
 ## Points d'entrée code
 `MainActivity.kt` → `HomeExplorerPreview.kt` / `GithubDomEvidence.kt` / `GithubWebSource.kt` / `GithubApiConsentPolicy.kt` ; `MosaicActivity.kt` / `GithubMosaicTargets.kt` ; `Supertonic3Speech.kt` ; `github_dom_evidence.js`.
 
-Chaîne GitHub : tests + APK sur la branche → PR vers main → CI main → job GitHub Release avec APK debug et SHA256. **Ne pas déclarer la release publiée avant sa vérification réelle.**
+**Chaîne validée** : branche CI #88 verte → PR #1 fusionnée (`241319d43`) → CI main #89 verte → release `v0.5.2` publiée avec APK debug/SHA256. Workflow `dashboardgit-status` actif, JSON final `completed/success`.

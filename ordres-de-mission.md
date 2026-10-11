@@ -12,3 +12,10 @@ Autorisé pour **ce projet** :
 **Règles de qualité** : pas de faux succès, ne pas confondre WebView/REST, préserver refus API explicite, Supertonic 3, choix de projets, sauvegardes et date de cache. Indiquer les limites connues de défilement/gestes et les tests réels nécessaires. Le canal GitHub peut rester en préversion tant que scrolling et signature de distribution ne sont pas validés.
 
 Les instructions d'évolution historiques complètes figurent dans `docs/archive/2026-10-11-pre-v0.5.2/ordres-de-mission.md`.
+
+## Autorisation exécutée — 11/10/2026
+- PR #1 fusionnée vers `main` au commit `241319d43`.
+- GitHub Actions main #89 réussie, GitHub prerelease `v0.5.2` créée avec APK de test debug et SHA256.
+- Les cinq mémoires précédentes restent archivées intégralement dans `docs/archive/2026-10-11-pre-v0.5.2/`.
+- Encore à tester/améliorer : scrolling et gestes Samsung, transition spontanée d'un workflow, mémoire/réseau et signature pérenne.
+- Aucun déploiement Google Play ni future release autorisés sans nouvel accord.
