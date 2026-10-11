@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "repo": "DashbordGit",
+  "updatedAt": "2026-10-11T12:53:08+00:00",
+  "runs": [
+    {
+      "id": 38140968511,
+      "name": "Android APK",
+      "status": "queued",
+      "conclusion": "",
+      "head_branch": "main",
+      "html_url": "https://github.com/greenpower2669/DashbordGit/actions/runs/38140968511",
+      "head_commit": {
+        "message": "Merge DashbordGit v0.5.2 — Chromium, DOM evidence, consent & archives"
+      }
+    }
+  ]
+}
