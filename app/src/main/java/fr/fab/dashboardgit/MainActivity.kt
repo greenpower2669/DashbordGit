@@ -89,6 +89,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
         controls.addView(settings,LinearLayout.LayoutParams(0,-2,1f))
         controls.addView(refresh,LinearLayout.LayoutParams(0,-2,1f))
+        val mosaicButton=Button(this).apply {
+            text="🧩 MOSAÏQUE CHROMIUM"
+            textSize=18f
+            contentDescription="Ouvrir la mosaïque de pages GitHub sans chargement automatique"
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity,MosaicActivity::class.java))
+            }
+        }
         quotaLabel=TextView(this).apply {
             textSize=19f
             setTypeface(null,Typeface.BOLD)
@@ -109,6 +117,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         scroll.addView(list)
         root.addView(title)
         root.addView(controls)
+        root.addView(mosaicButton)
         root.addView(quotaLabel)
         root.addView(quotaProgress,LinearLayout.LayoutParams(-1,22))
         root.addView(info)
