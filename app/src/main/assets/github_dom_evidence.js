@@ -19,7 +19,8 @@
     var label=a.getAttribute("aria-label")||"";
     var svg=a.querySelector("svg[aria-label]");
     var iconLabel=svg?svg.getAttribute("aria-label")||"":"";
-    if(!label && !iconLabel) continue;
+    // Keep an exact run ID even if its status label is unknown. It must
+    // hide an older successful run instead of silently skipping the newest.
     var row=a.closest(".Box-row,[role='row'],li,article")||a.parentElement;
     var branchLink=row && row.querySelector("a.branch-name[title]");
     var branch=branchLink?branchLink.getAttribute("title")||"":"";
