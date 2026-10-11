@@ -303,21 +303,37 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         )) {
             GithubApiConsentPolicy.Decision.BLOCK -> return false
             GithubApiConsentPolicy.Decision.PERMIT -> return true
-            GithubApiConsentPolicy.Decision.REQUEST -> { /* ask the user below */ }
+            GithubApiConsentPolicy.Decision.REQUEST -> { /* explicit choice below */ }
         }
         val latch=CountDownLatch(1)
         val decision=AtomicBoolean(false)
+        val answered=AtomicBoolean(false)
+        fun finish(allow:Boolean,persist:Boolean) {
+            if(!answered.compareAndSet(false,true))return
+            decision.set(allow)
+            if(allow && persist) {
+                prefs.edit().putBoolean("allow_api_"+category,true).apply()
+            }
+            debug("Consentement API "+category+" : "+
+                if(allow) "autorisé"+(if(persist) " durablement" else " une fois")
+                else "REFUS EXPLICITE")
+            latch.countDown()
+        }
         runOnUiThread {
             android.app.AlertDialog.Builder(this)
-                .setTitle("Autoriser une requête API ?")
-                .setMessage(why+"\nCoût estimé : "+estimated+" requête(s).")
-                .setItems(arrayOf("AUTORISER UNE FOIS","TOUJOURS AUTORISER CETTE CATÉGORIE","REFUSER")) { _,index ->
-                    if(index<2) decision.set(true)
-                    if(index==1) prefs.edit().putBoolean("allow_api_"+category,true).apply()
-                    debug("Consentement "+category+": "+index)
-                    latch.countDown()
+                .setTitle("Autoriser l'API GitHub ?")
+                .setMessage(why+"\nCoût estimé : "+estimated+
+                    " requête(s). Tu peux toujours refuser.")
+                .setPositiveButton("AUTORISER UNE FOIS") { _,_ ->
+                    finish(true,false)
                 }
-                .setOnCancelListener { latch.countDown() }
+                .setNeutralButton("TOUJOURS AUTORISER") { _,_ ->
+                    finish(true,true)
+                }
+                .setNegativeButton("REFUSER") { _,_ ->
+                    finish(false,false)
+                }
+                .setOnCancelListener { finish(false,false) }
                 .show()
         }
         latch.await(90,TimeUnit.SECONDS)
@@ -470,12 +486,18 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
         val serial=++currentRefresh
         val projects=selected.toList()
+        domEvidence.clear() // no evidence is reused as newly verified in a later scan
         scannerErrors=0
         webScanComplete=false
         apiOfferWasDismissed=false
         apiOffer.visibility=android.view.View.GONE
         apiOffer.removeAllViews()
         initializeProjectCards(projects)
+        // Preserve the cards but clearly label the previous results as
+        // historical until the new scan independently confirms them.
+        projects.forEach { repo ->
+            currentSnapshots[repo]?.let { displayProject(repo,it,true) }
+        }
         // Previously verified snapshots stay on-screen during the entire
         // refresh. The browser's output has a separate evidence channel.
         homePreview?.start(projects)
