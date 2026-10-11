@@ -196,10 +196,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     // Must be called only from a background thread.
     private fun permitApi(category:String,why:String,estimated:Int=1):Boolean {
-        val mode=prefs.getString("api_mode","ASK") ?: "ASK"
-        if(mode=="WEB") return false
-        if(prefs.getBoolean("allow_api_"+category,false)) return true
-        if(mode!="ASK") return false
+        val mode=prefs.getString("api_mode","ASK")
+        when(GithubApiConsentPolicy.decide(
+            mode,prefs.getBoolean("allow_api_"+category,false)
+        )) {
+            GithubApiConsentPolicy.Decision.BLOCK -> return false
+            GithubApiConsentPolicy.Decision.PERMIT -> return true
+            GithubApiConsentPolicy.Decision.REQUEST -> { /* ask the user below */ }
+        }
         val latch=CountDownLatch(1)
         val decision=AtomicBoolean(false)
         runOnUiThread {
