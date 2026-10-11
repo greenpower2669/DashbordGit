@@ -41,7 +41,9 @@ class HomeExplorerPreview(
     private val activity:AppCompatActivity,
     private val preferences:SharedPreferences,
     private val log:(String)->Unit,
-    private val openMosaic:()->Unit
+    private val openMosaic:()->Unit,
+    private val onEvidence:(GithubDomEvidence)->Unit,
+    private val onFinished:()->Unit
 ) {
     val view:LinearLayout
     private val handler=Handler(Looper.getMainLooper())
@@ -58,6 +60,12 @@ class HomeExplorerPreview(
     private var visits=emptyList<GithubExplorerPlan.Visit>()
     private var current:GithubExplorerPlan.Visit?=null
     private var busy=false
+    private var finishedNotified=false
+    fun isExploring():Boolean=busy
+    private val evidenceScript by lazy {
+        activity.assets.open("github_dom_evidence.js").bufferedReader().use { it.readText() }
+    }
+
     private var pageSettled=true
     private var lastStart=0L
     private var lastDomSignal=0L
@@ -146,6 +154,41 @@ class HomeExplorerPreview(
         }
     }
 
+    private fun signalFinished() {
+        if(!finishedNotified) {
+            finishedNotified=true
+            onFinished()
+        }
+    }
+
+    private fun captureRunEvidence(browser:WebView,visit:GithubExplorerPlan.Visit,
+                                   expectedGeneration:Int) {
+        if(destroyed || !enabled || expectedGeneration!=generation ||
+            current?.repository!=visit.repository || web!==browser)return
+        if(!matchesVisit(browser.url,visit))return
+        try {
+            val js=evidenceScript.replace(
+                "__REPO__",org.json.JSONObject.quote(visit.repository))
+            // JavaScript is a local, read-only DOM inspection. No network calls.
+            browser.evaluateJavascript(js) { result ->
+                if(destroyed || !enabled || expectedGeneration!=generation ||
+                    current?.repository!=visit.repository || web!==browser)return@evaluateJavascript
+                val proofs=GithubDomEvidence.parseWebViewResponse(
+                    visit.repository,visit.url,result)
+                if(proofs.isEmpty()) {
+                    log("Chromium "+visit.repository+
+                        " : aucun statut ARIA certain, conservé inconnu")
+                } else {
+                    log("Chromium "+visit.repository+
+                        " : "+proofs.size+" statut(s) relié(s) à leurs runs")
+                    proofs.forEach(onEvidence)
+                }
+            }
+        } catch(e:Exception) {
+            log("DOM "+visit.repository+" : "+e.javaClass.simpleName)
+        }
+    }
+
     private fun matchesVisit(url:String?,visit:GithubExplorerPlan.Visit):Boolean {
         if(url.isNullOrBlank())return false
         return runCatching {
@@ -169,14 +212,20 @@ class HomeExplorerPreview(
     /** Called on the UI thread by the existing, user-triggered ACTUALISER button. */
     fun start(repositories:Collection<String>) {
         check(Looper.myLooper()==Looper.getMainLooper()) { "WebView requires UI thread" }
-        if(destroyed || !enabled)return
+        if(destroyed)return
         stopQueueOnly()
+        finishedNotified=false
+        if(!enabled) {
+            signalFinished()
+            return
+        }
         visits=GithubExplorerPlan.create(repositories)
         nextIndex=0
         totalResources=0
         totalApiResources=0
         if(visits.isEmpty()) {
             title.text="Aucun projet public à explorer"
+            signalFinished()
             return
         }
         busy=true
@@ -202,6 +251,7 @@ class HomeExplorerPreview(
 
     fun stop(message:String="Exploration arrêtée par l'utilisateur.") {
         stopQueueOnly()
+        signalFinished()
         title.text="⏹ "+message
         details.text="L'aperçu n'est plus en cours d'exploration. Aucun rechargement programmé."
         log(message)
@@ -211,8 +261,10 @@ class HomeExplorerPreview(
         if(destroyed || !busy || expectedGeneration!=generation || !enabled)return
         if(nextIndex>=visits.size) {
             busy=false
-            current=null
+            // Keep last real Github page visible; DOM may update by itself.
+            // No Dashboard polling or reload is scheduled.
             pageSettled=true
+            signalFinished()
             title.text="✅ Exploration terminée · "+visits.size+" pages visitées"
             details.text="Dernière page visible. Les éventuelles évolutions internes "+
                 "à GitHub ne constituent pas un statut vérifié."
@@ -262,6 +314,7 @@ class HomeExplorerPreview(
             count+" ressources, api.github.com="+apiCount+", "+duration+" ms")
         if(blocked) {
             busy=false
+            signalFinished()
             web?.stopLoading()
             title.text="⚪ GitHub limite ou refuse l'accès — parcours arrêté"
             details.text=message+" Aucun contournement ou nouvelle tentative automatique."
@@ -305,10 +358,11 @@ class HomeExplorerPreview(
                 if(message.message()=="DASHGIT_MINI_DOM" &&
                     SystemClock.elapsedRealtime()-lastDomSignal>3500L) {
                     lastDomSignal=SystemClock.elapsedRealtime()
-                    if(!destroyed && web===browser && busy) {
-                        title.text="🔵 "+nextIndex+" / "+visits.size+
+                    if(!destroyed && web===browser && enabled) {
+                        if(busy) title.text="🔵 "+nextIndex+" / "+visits.size+
                             " — "+(current?.repository ?: "page")+" · DOM actif"
-                        log("Mutation DOM observée dans l'aperçu (pas un changement de build prouvé)")
+                        log("Mutation DOM observée (cela ne prouve pas un changement de build)")
+                        current?.let { captureRunEvidence(browser,it,generation) }
                     }
                     return true
                 }
@@ -348,6 +402,10 @@ class HomeExplorerPreview(
                 if(!busy || pageSettled || web!==browser || !matchesVisit(url,visit))return
                 focusActualActions(browser)
                 watchExistingDom(browser)
+                val capturedGeneration=generation
+                handler.postDelayed({
+                    captureRunEvidence(browser,visit,capturedGeneration)
+                },650L)
                 settle(generation,
                     "Page réelle GitHub chargée. Aperçu miniature, "+
                     "sans interprétation automatique de la couleur.",false)
