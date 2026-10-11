@@ -1,43 +1,16 @@
-# DashbordGit — carte centrale vivante
+# DashbordGit — brainmap active
 
-Branche active : `feature/dashgit-chromium-mosaic-001`. Base vérifiée : `feature/web-first-supertonic3-v1`. Branche `main` non modifiée, aucune release ni Play Store.
+**Version visée : v0.5.2**, merge + GitHub prerelease **autorisés le 11/10/2026**. Branche source : `feature/dashgit-dom-scroll-consent-003`; `main` cible. La publication Play Store n'est pas incluse.
 
-## Tiroirs
+- `brain.md` : modèle d'architecture et invariants fonctionnels.
+- `todo.md` : points non validés et étapes après release.
+- `debughistorical.md` : régressions, preuves et vérifications.
+- `ordres-de-mission.md` : autorisations, périmètre et interdictions.
+- `docs/archive/2026-10-11-pre-v0.5.2/` : **copies intégrales pré-synthèse** des 5 mémoires vivantes (aucune donnée perdue).
+- `docs/DASHGIT-CHROMIUM-001.md`, `docs/DASHGIT-HOME-EXPLORER-002.md`, `docs/DASHGIT-DOM-SCROLL-CONSENT-003.md` : audits/essais détaillés.
+- `docs/releases/v0.5.2.md` : notes de GitHub préversion.
 
-- `brain.md` : architecture Chromium/WebView, réseau/API, TTS et conservation des données
-- `debughistorical.md` : incidents prouvés, CI browser, limites et mesures
-- `todo.md` : validations restantes sur appareil
-- `ordres-de-mission.md` : mission DASHGIT-CHROMIUM-001 et interdictions
+## Points d'entrée code
+`MainActivity.kt` → `HomeExplorerPreview.kt` / `GithubDomEvidence.kt` / `GithubWebSource.kt` / `GithubApiConsentPolicy.kt` ; `MosaicActivity.kt` / `GithubMosaicTargets.kt` ; `Supertonic3Speech.kt` ; `github_dom_evidence.js`.
 
-## Modules
-
-- `MainActivity.kt` : dashboard original, API sur consentement, jauge et bouton d'accès MOSAÏQUE
-- `MosaicActivity.kt` : vrai WebView Chromium Android, gestes, mosaïque, captures figées, observateur DOM, instrumentation réseau indicative
-- `GithubMosaicTargets.kt` : URL exacte run/actions/commit GitHub validée et type mémorisé
-- `GithubWebSource.kt` / `GithubWorkflowStatus.kt` / `GithubApiConsentPolicy.kt` : ancienne architecture conservée
-- `Supertonic3Speech.kt` : moteur existant préservé sur le dashboard principal
-- `scripts/probe_real_chromium_github.py` : navigateur Chrome réel en CI sans rechargement, capture screenshot + métriques
-- `docs/DASHGIT-CHROMIUM-001.md` : rapport expérimental complet
-
-Ne jamais confondre CI Android compilée, navigateur Chrome réel, et vraie validation WebView Samsung. Aucune observation ne prouve actuellement une transition de statut spontanée jusqu'à fin de run.
-
-## Nouvelle extension HOME-EXPLORER-002
-
-Branche `feature/dashgit-home-explorer-002`, créée à partir de `feature/dashgit-chromium-mosaic-001` ; aucun merge de `main`.
-
-- `HomeExplorerPreview.kt` : cadre miniature de la première page, une WebView réelle lazy, parcours séquentiel visibles, pause, bouton agrandir, instrumentation des requêtes.
-- `GithubExplorerPlan.kt` + test JVM : liste d'URL publiques strictes, 12 pages max, délai fixe de 3000 ms.
-- `MainActivity.kt` : insertion de la mini-fenêtre et démarrage exclusivement sur ACTUALISER, anti-doublon des actualisations.
-- `scripts/probe_real_chromium_github.py` : vérification additionnelle dans Chrome réel des pages Actions DashbordGit et JTrex.
-- `docs/DASHGIT-HOME-EXPLORER-002.md` : contrat, résultats, contraintes et tests restant à faire.
-
-## Correction suivante — DOM/SCROLL/CONSENT-003
-
-Branche `feature/dashgit-dom-scroll-consent-003`, issue de `feature/dashgit-home-explorer-002`. Ne pas merger `main`.
-
-- `app/src/main/assets/github_dom_evidence.js` : extraction accessible réelle des liens directs vers les builds.
-- `GithubDomEvidence.kt` et `GithubDomEvidenceTest.kt` : preuve sémantique liée au run et fusion conservatrice, protection contre ancien vert.
-- `HomeExplorerPreview.kt` : callback à chaque observation DOM vérifiée et signal de fin de visite, sans polling.
-- `MainActivity.kt` : cartes permanentes et défilables pendant les requêtes, vrais boutons refus/autorisation REST et merge DOM.
-- `scripts/probe_real_chromium_github.py` : exécution du même JavaScript sur des pages publiques actuelles dans Chrome CI ; comparaison au statut GitHub officiel.
-- `docs/DASHGIT-DOM-SCROLL-CONSENT-003.md` : rapport, critères et tests restants.
+Chaîne GitHub : tests + APK sur la branche → PR vers main → CI main → job GitHub Release avec APK debug et SHA256. **Ne pas déclarer la release publiée avant sa vérification réelle.**

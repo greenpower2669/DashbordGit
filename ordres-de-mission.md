@@ -1,27 +1,14 @@
-# MISSION SOL — DASHGIT-CHROMIUM-001
+# DashbordGit — mission active et autorisations
 
-**Date 11/10/2026. Statut : implémentation sur branche dédiée, validation Android finale non obtenue.**
+**Décision de Fab le 11 octobre 2026 : « merge release là et met à jour les mémoires ; si une est trop grande synthétise et archive un bout ».**
 
-Objectif : surveillance visuelle autonome des pages GitHub via WebView Android Chromium, sans API REST explicite et sans intervention de ChatGPT. Conserver Dashboard Git existant, Supertonic 3, sélections, sauvegardes et mode API sur consentement.
+Autorisé pour **ce projet** :
+1. Fusionner `feature/dashgit-dom-scroll-consent-003` dans `main` après vérification CI et absence de divergence.
+2. Créer une **GitHub Release v0.5.2**, avec l'APK de test issu d'un build vert de main, notes de release et SHA256.
+3. Consolider les cinq fichiers vivants, archiver les versions longues **sans supprimer l'historique**.
 
-Règles : pas d'iframe bloquée GitHub, pas de bypass origine/protection, pas de multiplication de processus forcée ; ressources bornées. Pages chargées à la demande, non à l'ouverture ; boutons individuels et global, appui long (recharge individuelle), double tap (navigateur externe), choix de cible actions/run/commit, zoom et cadrage. Les pages GitHub peuvent faire leurs propres requêtes/DOM changements indépendamment.
+**Non autorisé** : publication Google Play/AAB, modification d'autres dépôts, nouveaux déploiements sans accord. Les futurs merges/releases restent soumis à nouvelle validation.
 
-Vérification robuste : vrais statuts GitHub testés dans navigateur Chromium CI ; vraie mutation/transition spontanée de build à observer sur téléphone avant toute garantie de rafraîchissement autonome. Afficher les erreurs, données périmées et captures figées. Pas de faux vert. Historique dans debughistorical, suite dans todo.
+**Règles de qualité** : pas de faux succès, ne pas confondre WebView/REST, préserver refus API explicite, Supertonic 3, choix de projets, sauvegardes et date de cache. Indiquer les limites connues de défilement/gestes et les tests réels nécessaires. Le canal GitHub peut rester en préversion tant que scrolling et signature de distribution ne sont pas validés.
 
-**Interdictions** : pas de merge main, pas de release, pas de publication Play, pas de cookie/secret GitHub versionné, pas de modifications d'autres dépôts sans autorisation. Les capacités impossibles ou non prouvées doivent rester documentées.
-
-## Extension autorisée — DASHGIT-HOME-EXPLORER-002
-
-Ajouter une fenêtre Chromium *réelle et miniature* sur la première page du logiciel pour afficher visuellement la visite des pages GitHub Actions. Préserver Dashboard et mosaïque complète. Déclenchement uniquement manuel, un seul navigateur miniature, limite de pages et temporisation fixe raisonnable, stop/pause et bouton de zoom vers mosaïque. Protéger contre les limitations 403/429 et éviter une charge excessive. Toute idée de « comportement humain aléatoire pour ne pas être repéré » doit être remplacée par des limites explicites : **aucun contournement de la détection/protection de GitHub**.
-
-La lecture HTTP/JSON/API et le navigateur visible sont indépendants ; annoncer les requêtes supplémentaires du navigateur. Pas de faux statut, pas de promesse de rafraîchissement spontané non prouvée. Valider sur pages réelles en Chrome CI puis sur Android appareil.
-
-Développer/pousser seulement sur `feature/dashgit-home-explorer-002` ; garder `main`, releases et Play inchangés.
-
-## Extension avec accord explicite — DASHGIT-DOM-SCROLL-CONSENT-003
-
-Fab valide le code sur les quatre erreurs du 11 octobre 2026 : exploiter l'ARIA du vrai DOM Chromium au lieu d'afficher seulement des inconnus ; afficher les cartes progressivement et conserver le défilement ; offrir une vraie décision REFUSER/ACCEPTER API sans bloquer l'écran ; maintenir la mini-WebView interactive indépendante.
-
-Critères de qualité : vraie page GitHub testée avec le même script que le téléphone, preuve attachée au bon ID de run, jamais une ancienne réussite affichée comme état actuel si build plus récent existe. Sources et dates visibles. Autorisation REST explicite, refus réellement fonctionnel ; aucune imitation « humaine » visant à contourner les protections GitHub. Pas de modification du moteur Supertonic 3.
-
-Branche `feature/dashgit-dom-scroll-consent-003` ; **aucun merge main, release ni Play Store sans accord de Fab**. Les tests JVM/Chrome CI ne prouvent pas le scrolling Android sans essai utilisateur.
+Les instructions d'évolution historiques complètes figurent dans `docs/archive/2026-10-11-pre-v0.5.2/ordres-de-mission.md`.
