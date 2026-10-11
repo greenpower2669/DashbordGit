@@ -139,9 +139,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         root.addView(mosaicButton)
         root.addView(quotaLabel)
         root.addView(quotaProgress,LinearLayout.LayoutParams(-1,22))
-        homePreview=HomeExplorerPreview(this,prefs,{ debug(it) }) {
-            startActivity(Intent(this@MainActivity,MosaicActivity::class.java))
-        }
+        homePreview=HomeExplorerPreview(
+            this,prefs,{ debug(it) },
+            { startActivity(Intent(this@MainActivity,MosaicActivity::class.java)) },
+            { evidence -> onExplorerEvidence(evidence) },
+            { if(webScanComplete) offerApiIfNeeded() }
+        )
         root.addView(homePreview!!.view,LinearLayout.LayoutParams(-1,-2).apply {
             setMargins(0,12,0,10)
         })
@@ -269,6 +272,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 info.text="Mode choisi : "+labels[index]
                 debug("Réglage API : "+ids[index])
                 dialog.dismiss()
+                if(webScanComplete)offerApiIfNeeded()
             }
             .setNegativeButton("ANNULER",null).show()
     }
