@@ -59,7 +59,6 @@ class HomeExplorerPreview(
     private var current:GithubExplorerPlan.Visit?=null
     private var busy=false
     private var pageSettled=true
-    private var errorCode:Int?=null
     private var lastStart=0L
     private var lastDomSignal=0L
     private val resources=AtomicInteger()
@@ -85,8 +84,8 @@ class HomeExplorerPreview(
             gravity=Gravity.CENTER_VERTICAL
         }
         val caption=TextView(activity).apply {
-            text="🔎 EXPLORATION CHROMIUM"
-            textSize=19f
+            text="🔎 MINI-EXPLORATEUR"
+            textSize=18f
             setTextColor(Color.BLACK)
             setTypeface(null,Typeface.BOLD)
         }
@@ -95,8 +94,15 @@ class HomeExplorerPreview(
             contentDescription=if(enabled) "Désactiver l'aperçu Web" else "Activer l'aperçu Web"
             textSize=19f
         }
+        val open=Button(activity).apply {
+            text="⤢"
+            textSize=20f
+            contentDescription="Agrandir dans la mosaïque Chromium complète"
+            setOnClickListener { openMosaic() }
+        }
         heading.addView(caption,LinearLayout.LayoutParams(0,-2,1f))
-        heading.addView(toggle,LinearLayout.LayoutParams(dp(58),dp(52)))
+        heading.addView(open,LinearLayout.LayoutParams(dp(54),dp(48)))
+        heading.addView(toggle,LinearLayout.LayoutParams(dp(54),dp(48)))
         title=TextView(activity).apply {
             text="En attente · aucune page chargée"
             textSize=17f
@@ -118,19 +124,10 @@ class HomeExplorerPreview(
             textSize=13f
             setTextColor(0xFF4A4A4A.toInt())
         }
-        val open=Button(activity).apply {
-            text="↗ AGRANDIR"
-            textSize=14f
-            contentDescription="Ouvrir la mosaïque Chromium complète"
-            setOnClickListener { openMosaic() }
-        }
         view.addView(heading)
         view.addView(title)
-        view.addView(frame,LinearLayout.LayoutParams(-1,dp(165)))
-        val actions=LinearLayout(activity).apply { orientation=LinearLayout.HORIZONTAL }
-        actions.addView(details,LinearLayout.LayoutParams(0,-2,1f))
-        actions.addView(open,LinearLayout.LayoutParams(dp(120),dp(52)))
-        view.addView(actions)
+        view.addView(frame,LinearLayout.LayoutParams(-1,dp(135)))
+        view.addView(details)
         view.addView(requests)
         placeholder()
         toggle.setOnClickListener {
@@ -216,7 +213,6 @@ class HomeExplorerPreview(
         val visit=visits[nextIndex++]
         current=visit
         pageSettled=false
-        errorCode=null
         resources.set(0)
         apiResources.set(0)
         lastStart=SystemClock.elapsedRealtime()
@@ -344,7 +340,6 @@ class HomeExplorerPreview(
                 if(!request.isForMainFrame || web!==browser || pageSettled)return
                 val code=response.statusCode
                 if(code>=400) {
-                    errorCode=code
                     val block=code==403 || code==429
                     settle(generation,"GitHub HTTP "+code+" pour "+(current?.repository ?: "?")+
                         (if(block) " : protection respectée." else " : état indéterminé."),block)
