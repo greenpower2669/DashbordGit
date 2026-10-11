@@ -66,6 +66,9 @@ def main():
         assert html_code==200 and len(html_raw)>10_000, (
             f"Real HTML unavailable for {run_id}: HTTP {html_code}, {len(html_raw)} bytes"
         )
+        assert str(run_id) in html_raw.decode("utf-8","replace"), (
+            f"GitHub HTML does not contain target run ID {run_id}; cannot test a real run page"
+        )
         # We never infer status from a generic success word inside the page.
         # Kotlin tests decide whether evidence is bound to this exact run ID.
         basename=f"{expected}-{run_id}"
