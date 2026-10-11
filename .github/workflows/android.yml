@@ -83,3 +83,38 @@ jobs:
         with:
           name: DashbordGit-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+
+  publish_release:
+    name: GitHub prerelease v0.5.2
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download APK from this successful build
+        uses: actions/download-artifact@v4
+        with:
+          name: DashbordGit-debug-apk
+          path: dist
+      - name: Publish tagged v0.5.2 GitHub prerelease with tested APK
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -s dist/app-debug.apk
+          mv dist/app-debug.apk dist/DashbordGit-v0.5.2-debug.apk
+          sha256sum dist/DashbordGit-v0.5.2-debug.apk > dist/SHA256SUMS.txt
+          if gh release view v0.5.2 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "The v0.5.2 release already exists; no overwrite."
+          else
+            gh release create v0.5.2 \
+              dist/DashbordGit-v0.5.2-debug.apk dist/SHA256SUMS.txt \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "DashbordGit v0.5.2 — Chromium et statuts DOM" \
+              --notes-file docs/releases/v0.5.2.md \
+              --prerelease
+          fi
