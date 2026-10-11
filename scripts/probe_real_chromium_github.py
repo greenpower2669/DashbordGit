@@ -195,6 +195,8 @@ def main():
                 text=item.get("label","").lower()
                 if text.startswith("completed successfully:"):
                     assert truth.get("conclusion")=="success", "Status label does not match official run"
+                if text.startswith("failed:"):
+                    assert truth.get("conclusion")=="failure", "Failed status label differs from official run"
                 print("DOM_CHECK "+json.dumps({
                     "repo":repo,"runId":observed_id,"label":text[:90],"truth":truth
                 },ensure_ascii=False))
