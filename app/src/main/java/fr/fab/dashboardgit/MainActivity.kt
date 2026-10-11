@@ -714,7 +714,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         .putBoolean("speech_chunked",backup.optBoolean("speechChunked",false))
                         .putInt("speech_max_words",backup.optInt("speechMaxWords",18).coerceIn(5,40))
                         .putString("speech_test",backup.optString("speechTest","").take(800))
-                        .putString("api_mode",backup.optString("apiMode","WEB").let { if(it in setOf("WEB","ASK","ALLOWED")) it else "WEB" })
+                        .putString("api_mode",backup.optString("apiMode",prefs.getString("api_mode","ASK") ?: "ASK").let { if(it in setOf("WEB","ASK","ALLOWED")) it else "ASK" })
                         .apply()
                     list.removeAllViews()
                     selected.mapNotNull { loadSnapshot(it) }.sortedByDescending { it.optLong("savedAt") }.forEach { renderSnapshot(it,true) }
