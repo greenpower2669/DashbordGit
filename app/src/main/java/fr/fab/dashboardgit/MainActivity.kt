@@ -437,14 +437,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             var unknown=0
             for((repo,snapshot) in snapshots) {
                 val latest=snapshot.optJSONArray("runs")?.optJSONObject(0)
-                val status=latest?.optString("status","unknown") ?: "unknown"
-                val conclusion=latest?.optString("conclusion","").orEmpty()
-                val reliable=when(status) {
-                    "queued","pending","waiting","requested","in_progress" -> true
-                    "completed" -> conclusion in setOf("success","failure","cancelled",
-                        "timed_out","action_required","skipped","neutral","startup_failure")
-                    else -> false
-                }
+                val reliable=GithubWorkflowStatus.classify(latest).verified
                 if(reliable) confirmed++ else unknown++
                 // Cache failed Web reads are not rewritten as newly verified.
                 if(snapshot.optString("source")!="CACHE") saveSnapshot(repo,snapshot)
@@ -487,17 +480,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         try { cache.getString("snapshot_"+repo,null)?.let { JSONObject(it) } } catch(_:Exception) { null }
 
     private fun runStatusText(run:JSONObject):Pair<String,String> {
-        val status=run.optString("status","unknown")
-        val conclusion=run.optString("conclusion","")
-        return when {
-            status=="queued" || status=="pending" || status=="waiting" || status=="requested" -> "🟠" to "EN ATTENTE"
-            status=="in_progress" -> "🟡" to "EN COURS"
-            status=="completed" && conclusion=="success" -> "🟢" to "RÉUSSI"
-            status=="completed" && conclusion in setOf("failure","timed_out") -> "🔴" to "ÉCHEC"
-            status=="completed" && conclusion=="cancelled" -> "⚪" to "ANNULÉ"
-            status=="completed" && conclusion=="skipped" -> "⚪" to "IGNORÉ"
-            else -> "⚪" to "NON VÉRIFIÉ"
-        }
+        val state=GithubWorkflowStatus.classify(run)
+        return state.marker to state.label
     }
 
     private fun addRepo(snapshot:JSONObject,runs:List<JSONObject>,source:String) {
