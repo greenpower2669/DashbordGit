@@ -552,9 +552,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun onExplorerEvidence(evidence:GithubDomEvidence) {
         if(isFinishing || isDestroyed || evidence.repo !in selected)return
         if(!evidence.verified) {
-            debug("Chromium "+evidence.repo+" : statut non prouvé pour "+
-                evidence.runId+" ("+evidence.reason.take(100)+")")
-            return
+            debug("Chromium "+evidence.repo+" : dernier run #"+evidence.runId+
+                " visible mais statut non prouvé — reste GRIS")
         }
         val old=domEvidence[evidence.repo]
         if(old!=null && old.runId>evidence.runId)return
@@ -568,7 +567,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             saveSnapshot(evidence.repo,merged)
             debug("Chromium "+evidence.repo+" #"+evidence.runId+
                 " : "+evidence.status+"/"+evidence.conclusion+
-                ", preuve "+evidence.reason.take(150))
+                ", "+evidence.reason.take(150))
             if(webScanComplete) {
                 refreshSummary()
                 offerApiIfNeeded()
