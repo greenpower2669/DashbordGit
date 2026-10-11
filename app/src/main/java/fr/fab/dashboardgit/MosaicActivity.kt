@@ -627,6 +627,7 @@ class MosaicActivity : AppCompatActivity() {
                     resources+" ressources Chromium, api.github.com="+api)
                 if(GithubMosaicTargets.isGithubPage(url ?: "")) {
                     attachDomObservation(web)
+                    focusGithubTarget(web,tile.kind)
                 }
                 loaded(tile)
             }
@@ -683,7 +684,7 @@ class MosaicActivity : AppCompatActivity() {
             false
         }
         web.setOnLongClickListener {
-            refreshOne(tile)
+            // Long press is handled once by the gesture detector.
             true
         }
         tile.preview.removeAllViews()
@@ -691,6 +692,26 @@ class MosaicActivity : AppCompatActivity() {
         tile.detail.text="⏳ Chargement de la page GitHub exacte…"
         log("ACTUALISER "+tile.repo+" : "+tile.url)
         web.loadUrl(tile.url)
+    }
+
+    private fun focusGithubTarget(view:WebView,kind:GithubMosaicTargets.Kind) {
+        // No scraping or REST calls. Only center the genuine page content.
+        // If GitHub changes its HTML, show the original full page instead.
+        val selector=when(kind) {
+            GithubMosaicTargets.Kind.RUN ->
+                "main h1, main [aria-label*='workflow'], main"
+            GithubMosaicTargets.Kind.ACTIONS ->
+                "main a[href*='/actions/runs/'], main"
+            GithubMosaicTargets.Kind.COMMITS ->
+                "main a[href*='/commit/'], main"
+        }
+        val quoted=org.json.JSONObject.quote(selector)
+        val code="(function(){var target=document.querySelector("+quoted+");"+
+            "if(!target)return 'no-focus-selector';"+
+            "if(target.tagName==='A')target=target.closest('li,article')||target;"+
+            "target.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});"+
+            "return 'focused';})()"
+        runCatching { view.evaluateJavascript(code,null) }
     }
 
     private fun attachDomObservation(view:WebView) {
