@@ -132,6 +132,23 @@ def main():
             if label!="current-ci-run":
                 assert later["bodyLength"]>500, "Real GitHub page did not render"
                 assert url.split("/actions/runs/")[0] in later["url"], "Navigation left GitHub repository"
+        # Additional real DOM check: filter public Actions by failed runs to
+        # discover the exact accessible label used for a RED icon. This is not
+        # inferred from its color, and remains separate from Android traffic.
+        repo="DashbordGit"
+        url="https://github.com/greenpower2669/DashbordGit/actions?query=conclusion%3Afailure"
+        driver.get(url)
+        time.sleep(3)
+        js=(ROOT/"app"/"src"/"main"/"assets"/"github_dom_evidence.js").read_text(encoding="utf-8")
+        rows=json.loads(driver.execute_script("return "+js.replace("__REPO__",json.dumps(repo))))
+        observed=[]
+        for row in rows[:4]:
+            truth=api_truth(repo,int(row["id"]))
+            observed.append({"id":row["id"],"label":row["label"][:140],"truth":truth})
+        print("REAL_FAILED_FILTER "+json.dumps({
+            "url":url,"items":observed
+        },ensure_ascii=False))
+        (OUT/"failed-list.png").write_bytes(driver.get_screenshot_as_png())
         assert len(report)>=2,"Must test real success and real failure pages"
 
         # Exercise the ACTUAL public Actions LIST pages used by the new
