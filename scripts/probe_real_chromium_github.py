@@ -167,6 +167,20 @@ def main():
                });
             """)
             print("REAL_ACTIONS_DOM "+repo+" "+json.dumps(semantic,ensure_ascii=False))
+            js=(ROOT/"app"/"src"/"main"/"assets"/"github_dom_evidence.js").read_text(encoding="utf-8")
+            typed=json.loads(driver.execute_script("return "+js.replace("__REPO__",json.dumps(repo))))
+            assert typed, "Real Actions page has no accessible run labels"
+            for item in typed[:3]:
+                observed_id=int(item["id"])
+                expected_url=f"https://github.com/greenpower2669/{repo}/actions/runs/{observed_id}"
+                assert item["url"]==expected_url
+                truth=api_truth(repo,observed_id)
+                text=item.get("label","").lower()
+                if text.startswith("completed successfully:"):
+                    assert truth.get("conclusion")=="success", "Status label does not match official run"
+                print("DOM_CHECK "+json.dumps({
+                    "repo":repo,"runId":observed_id,"label":text[:90],"truth":truth
+                },ensure_ascii=False))
             screenshot=OUT/(f"explore-{repo}.png")
             driver.save_screenshot(str(screenshot))
             item={
