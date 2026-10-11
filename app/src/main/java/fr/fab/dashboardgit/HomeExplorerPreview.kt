@@ -423,9 +423,13 @@ class HomeExplorerPreview(
 
     fun onPause() {
         if(busy)stop("Exploration suspendue : application quittée.")
-        web?.onPause()
+        // Release the home preview when switching to the full MosaicActivity
+        // or Chrome. This prevents retaining an extra off-screen renderer.
+        disposeWeb()
     }
-    fun onResume() { web?.onResume() }
+    fun onResume() {
+        // Intentionally no automatic reload when returning to the Dashboard.
+    }
 
     fun destroy() {
         if(destroyed)return
