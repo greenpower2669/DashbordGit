@@ -29,6 +29,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var supertonic: Supertonic3Speech? = null
     private lateinit var quotaLabel: TextView
     private lateinit var quotaProgress: ProgressBar
+    private var homePreview:HomeExplorerPreview?=null
+    private val refreshInFlight=AtomicBoolean(false)
     private val webSource by lazy { GithubWebSource(this) { debug(it) } }
     private val selected = linkedSetOf<String>()
     private val debugEvents=mutableListOf<String>()
@@ -120,6 +122,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         root.addView(mosaicButton)
         root.addView(quotaLabel)
         root.addView(quotaProgress,LinearLayout.LayoutParams(-1,22))
+        homePreview=HomeExplorerPreview(this,prefs,{ debug(it) }) {
+            startActivity(Intent(this@MainActivity,MosaicActivity::class.java))
+        }
+        root.addView(homePreview!!.view,LinearLayout.LayoutParams(-1,-2).apply {
+            setMargins(0,12,0,10)
+        })
         root.addView(info)
         root.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
         setContentView(root)
@@ -372,11 +380,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             info.text="Sélectionne d'abord des projets dans ⚙ PARAMÈTRES."
             return
         }
+        if(!refreshInFlight.compareAndSet(false,true)) {
+            info.text="Une actualisation est déjà en cours. Attends sa fin."
+            return
+        }
         val projects=selected.toList()
+        // Supplemental, visible Chromium tour. The scanner below remains
+        // independent and never silently reads a Chromium result as verified.
+        homePreview?.start(projects)
         info.text="Lecture Web des "+projects.size+" projets…"
         list.removeAllViews()
         debug("ACTUALISER : "+projects.size+" projets, lecture Web manuelle")
         Thread {
+          try {
             val snapshots=mutableListOf<Pair<String,JSONObject>>()
             var failures=0
             var usedApi=0
@@ -467,6 +483,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     info.append("\nPour les statuts gris : ⚙ PARAMÈTRES → Mode Web / API → Me demander.")
                 }
             }
+          } catch(e:Exception) {
+            debug("Actualisation interrompue : "+e.javaClass.simpleName+" "+e.message)
+            runOnUiThread { info.text="Actualisation interrompue ; données locales conservées." }
+          } finally {
+            refreshInFlight.set(false)
+          }
         }.start()
     }
 
@@ -758,7 +780,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     override fun onInit(status:Int) {
         if(status==TextToSpeech.SUCCESS) tts?.language=Locale.FRANCE
     }
+    override fun onPause() {
+        homePreview?.onPause()
+        super.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        homePreview?.onResume()
+    }
+
     override fun onDestroy() {
+        homePreview?.destroy()
+        homePreview=null
         supertonic?.close()
         tts?.shutdown()
         super.onDestroy()
