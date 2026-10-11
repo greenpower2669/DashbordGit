@@ -159,12 +159,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun chooseApiMode() {
         val labels=arrayOf(
-            "Web uniquement — aucune API (par défaut)",
-            "Me demander avant chaque nouvelle catégorie API",
+            "Web uniquement — aucune API sans exception",
+            "Me demander avant tout nouveau recours API (par défaut)",
             "Utiliser uniquement les catégories déjà autorisées"
         )
         val ids=arrayOf("WEB","ASK","ALLOWED")
-        val active=ids.indexOf(prefs.getString("api_mode","WEB")).coerceAtLeast(0)
+        val active=ids.indexOf(prefs.getString("api_mode","ASK")).coerceAtLeast(0)
         android.app.AlertDialog.Builder(this)
             .setTitle("Mode d'accès à GitHub")
             .setSingleChoiceItems(labels,active) { dialog,index ->
@@ -196,7 +196,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     // Must be called only from a background thread.
     private fun permitApi(category:String,why:String,estimated:Int=1):Boolean {
-        val mode=prefs.getString("api_mode","WEB") ?: "WEB"
+        val mode=prefs.getString("api_mode","ASK") ?: "ASK"
         if(mode=="WEB") return false
         if(prefs.getBoolean("allow_api_"+category,false)) return true
         if(mode!="ASK") return false
@@ -359,27 +359,56 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             info.text="Sélectionne d'abord des projets dans ⚙ PARAMÈTRES."
             return
         }
-        info.text="Lecture des sources Web en cours…"
+        val projects=selected.toList()
+        info.text="Lecture Web des "+projects.size+" projets…"
         list.removeAllViews()
-        debug("ACTUALISER : "+selected.size+" projets, réseau sur commande manuelle")
+        debug("ACTUALISER : "+projects.size+" projets, lecture Web manuelle")
         Thread {
+            val snapshots=mutableListOf<Pair<String,JSONObject>>()
             var failures=0
-            var confirmed=0
-            var unknown=0
             var usedApi=0
-            selected.forEach { repo ->
+            for((index,repo) in projects.withIndex()) {
+                runOnUiThread {
+                    info.text="Lecture Web "+(index+1)+"/"+projects.size+" : "+repo
+                }
                 try {
-                    val snapshot=webSource.inspect(repo)
-                    val jsonDate=snapshot.optString("jsonUpdatedAt","")
-                    val jsonAge=try {
-                        System.currentTimeMillis()-Instant.parse(jsonDate).toEpochMilli()
-                    } catch(_:Exception) { Long.MAX_VALUE }
-                    val jsonStale=snapshot.optString("source")=="JSON" &&
-                        (jsonAge<0 || jsonAge>5*60*1000L)
-                    val incomplete=snapshot.optBoolean("needsStatusConfirmation",true) || jsonStale
-                    if(incomplete && permitApi("runs",
-                            "Confirmer le dernier build du projet "+repo+
-                            " (Web incomplet ou JSON ancien)",1)) {
+                    snapshots.add(repo to webSource.inspect(repo))
+                } catch(e:Exception) {
+                    failures++
+                    debug("Web "+repo+" : "+e.message)
+                    val cached=loadSnapshot(repo)
+                    if(cached!=null) {
+                        cached.put("source","CACHE")
+                        snapshots.add(repo to cached)
+                    } else {
+                        snapshots.add(repo to JSONObject()
+                            .put("repo",repo).put("source","WEB")
+                            .put("savedAt",System.currentTimeMillis())
+                            .put("runs",JSONArray())
+                            .put("needsStatusConfirmation",true))
+                    }
+                }
+            }
+
+            // Aggregate missing statuses: ONE informed authorization decision
+            // for the whole refresh, instead of one interrupting popup per repo.
+            fun requiresApi(snapshot:JSONObject):Boolean {
+                val jsonDate=snapshot.optString("jsonUpdatedAt","")
+                val age=try {
+                    System.currentTimeMillis()-Instant.parse(jsonDate).toEpochMilli()
+                } catch(_:Exception) { Long.MAX_VALUE }
+                val stale=snapshot.optString("source")=="JSON" &&
+                    (age<0 || age>5*60*1000L)
+                return snapshot.optBoolean("needsStatusConfirmation",true) || stale
+            }
+            val unresolved=snapshots.filter { (_,snapshot) -> requiresApi(snapshot) }
+            if(unresolved.isNotEmpty()) {
+                val details=unresolved.map { it.first }
+                val prompt="Le Web n'a pas confirmé le dernier build pour "+
+                    details.size+" projet(s) : "+details.joinToString(", ")+
+                    ".\nAutoriser UNE requête API par projet, uniquement pour cette actualisation ?"
+                if(permitApi("runs",prompt,unresolved.size)) {
+                    for((repo,snapshot) in unresolved) {
                         try {
                             val response=readApi(
                                 "https://api.github.com/repos/greenpower2669/"+
@@ -391,43 +420,46 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                                     .put("source","API")
                                     .put("needsStatusConfirmation",false)
                                 usedApi++
+                                debug("API "+repo+" : "+apiRuns.length()+" builds (consentement accordé)")
                             } else {
-                                debug("API "+repo+" : aucun build retourné")
+                                debug("API "+repo+" : aucun workflow retourné")
                             }
                         } catch(e:Exception) {
                             debug("API "+repo+" : "+e.message)
                         }
                     }
-                    val latest=snapshot.optJSONArray("runs")?.optJSONObject(0)
-                    val status=if(latest==null) "unknown" else latest.optString("status","unknown")
-                    val conclusion=latest?.optString("conclusion","").orEmpty()
-                    val verified=when(status) {
-                        "queued","pending","waiting","requested","in_progress" -> true
-                        "completed" -> conclusion in setOf("success","failure","cancelled",
-                            "timed_out","action_required","skipped","neutral","startup_failure")
-                        else -> false
-                    }
-                    if(verified) confirmed++ else unknown++
-                    saveSnapshot(repo,snapshot)
-                    runOnUiThread { renderSnapshot(snapshot,false) }
-                } catch(e:Exception) {
-                    failures++
-                    unknown++
-                    debug("Actualisation "+repo+" : "+e.message)
-                    val cached=loadSnapshot(repo)
-                    runOnUiThread {
-                        if(cached!=null) renderSnapshot(cached,true)
-                        else addCard("⚪ "+repo,
-                            "Sources indisponibles : état non vérifié, aucune réussite supposée.")
-                    }
+                } else {
+                    debug("API : vérification non autorisée, "+details.size+" projet(s) non confirmés")
                 }
             }
+
+            var confirmed=0
+            var unknown=0
+            for((repo,snapshot) in snapshots) {
+                val latest=snapshot.optJSONArray("runs")?.optJSONObject(0)
+                val status=latest?.optString("status","unknown") ?: "unknown"
+                val conclusion=latest?.optString("conclusion","").orEmpty()
+                val reliable=when(status) {
+                    "queued","pending","waiting","requested","in_progress" -> true
+                    "completed" -> conclusion in setOf("success","failure","cancelled",
+                        "timed_out","action_required","skipped","neutral","startup_failure")
+                    else -> false
+                }
+                if(reliable) confirmed++ else unknown++
+                // Cache failed Web reads are not rewritten as newly verified.
+                if(snapshot.optString("source")!="CACHE") saveSnapshot(repo,snapshot)
+            }
             runOnUiThread {
-                info.text="Actualisation terminée : "+confirmed+" état(s) identifié(s), "+
-                    unknown+" inconnu(s), "+usedApi+" complément(s) API, "+
-                    failures+" erreur(s)."
-                if(unknown>0) info.append(
-                    "\nPour compléter les états gris : ⚙ PARAMÈTRES → Mode Web / API → Demander.")
+                list.removeAllViews()
+                snapshots.forEach { (_,snapshot) ->
+                    renderSnapshot(snapshot,snapshot.optString("source")=="CACHE")
+                }
+                info.text="Actualisation terminée : "+confirmed+" statut(s) vérifié(s), "+
+                    unknown+" inconnu(s), "+usedApi+" projet(s) vérifié(s) par API, "+
+                    failures+" erreur(s) Web."
+                if(unknown>0) {
+                    info.append("\nPour les statuts gris : ⚙ PARAMÈTRES → Mode Web / API → Me demander.")
+                }
             }
         }.start()
     }
@@ -667,7 +699,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         .put("speechChunked",prefs.getBoolean("speech_chunked",false))
                         .put("speechMaxWords",prefs.getInt("speech_max_words",18))
                         .put("speechTest",prefs.getString("speech_test",""))
-                        .put("apiMode",prefs.getString("api_mode","WEB"))
+                        .put("apiMode",prefs.getString("api_mode","ASK"))
                         
                     contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(backup.toString(2)) }
                     debug("Sauvegarde exportée")
