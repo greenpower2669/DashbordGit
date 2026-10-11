@@ -276,7 +276,7 @@ class HomeExplorerPreview(
             setSupportMultipleWindows(false)
             mixedContentMode=WebSettings.MIXED_CONTENT_NEVER_ALLOW
             safeBrowsingEnabled=true
-            loadsImages=true
+            loadsImagesAutomatically=true
             mediaPlaybackRequiresUserGesture=true
             useWideViewPort=true
             loadWithOverviewMode=true
