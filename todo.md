@@ -26,7 +26,7 @@ L'ancien TODO détaillé est archivé dans `docs/archive/2026-10-11-pre-v0.5.2/t
 - [x] Chiffrer localement un jeton de lecture du seul dépôt Djipie avec Android Keystore.
 - [x] Télécharger un asset privé seulement au clic, vérifier SHA-256, lire via MediaPlayer et exporter via sélecteur Android.
 - [x] Ajouter des tests unitaires de parsing, filtres et URLs valides.
-- [ ] Vérifier **CI Android / tests JVM** sur la branche ; corriger les erreurs éventuelles.
+- [x] **CI Android + tests JVM réussis** : run #39059365809 (17/10/2026), commit 22260c41a ; artifact APK debug 0.5.3-dev #12110692181 vérifié et SHA-256 local contrôlé. Tests sur Samsung et accès réellement privé restant à valider.
 - [ ] Essai réel Samsung avec jeton fine-grained et catalogue 447 sons : API GitHub privée, redirections Release, accès 401/403/404, lecture WAV/OGG et export.
 - [ ] Auditer le défilement de 60 cartes, gros WAV, cache/disque, annulation, appareil hors ligne, navigation et accessibilité.
 - [ ] Si validation de Fab : prévoir une PR/merge distinct et éventuellement une future APK/AAB ; **ne pas publier ni fusionner sans accord**.
