@@ -14,3 +14,9 @@
 `MainActivity.kt` → `HomeExplorerPreview.kt` / `GithubDomEvidence.kt` / `GithubWebSource.kt` / `GithubApiConsentPolicy.kt` ; `MosaicActivity.kt` / `GithubMosaicTargets.kt` ; `Supertonic3Speech.kt` ; `github_dom_evidence.js`.
 
 **Chaîne validée** : branche CI #88 verte → PR #1 fusionnée (`241319d43`) → CI main #89 verte → release `v0.5.2` publiée avec APK debug/SHA256. Workflow `dashboardgit-status` actif, JSON final `completed/success`.
+
+## Travail isolé DJIPIE-AUDIO-004
+- Branche : `feature/djipie-audio-explorer-001` (non fusionnée).
+- Architecture : `DjipieAudioActivity.kt` → `DjipieAudioCatalog.kt` + `DjipiePrivateAudio.kt`.
+- Dossier sonore canonique externe **privé** : Djipie `RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json`, chargé sur demande uniquement.
+- Tests : `DjipieAudioCatalogTest.kt` ; rapport : `docs/DASHGIT-DJIPIE-AUDIO-004.md`.
