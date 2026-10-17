@@ -17,3 +17,10 @@
 - **À poursuivre :** scrolling/gestes Samsung, transition spontanée de run, conso mémoire/réseau, robustesse de l'auth et des pages GitHub. Voir `todo.md`.
 
 Historique complet conservé dans `docs/archive/2026-10-11-pre-v0.5.2/` et rapports `docs/DASHGIT-*.md`.
+
+## Mission en cours — DJIPIE-AUDIO-004 (branche, non fusionnée)
+- Nouvel écran `DjipieAudioActivity.kt` depuis l'accueil ; aucune altération du scanner/mini-Chromium/Mosaïque.
+- Index de la sonothèque privée Djipie lu seulement après 🔄 Charger, avec `DjipieAudioCatalog.kt`.
+- `DjipiePrivateAudio.kt` : jeton read-only du dépôt privé chiffré via Android Keystore, fichier Release demandé individuellement par API, vérifié taille + SHA-256 et lu localement.
+- Filtres, recherche, familles, écoute, fichier sauvegardé par SAF. Compil et tests CI, audit ergonomique Samsung et authentification réelle à confirmer.
+- Numérotation de développement : **0.5.3-dev** ; main et release v0.5.2 inchangées. Voir `docs/DASHGIT-DJIPIE-AUDIO-004.md`.
