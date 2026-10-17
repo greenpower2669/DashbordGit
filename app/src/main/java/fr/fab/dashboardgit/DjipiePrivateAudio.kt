@@ -47,16 +47,18 @@ class DjipieTokenVault(context:Context) {
             Base64.encodeToString(cipher.doFinal(token.toByteArray(Charsets.UTF_8)),
                 Base64.NO_WRAP)).apply()
     }
-    fun read():String? = runCatching {
-        val stored=prefs.getString("protected",null) ?: return null
-        val parts=stored.split(":",limit=2)
-        if(parts.size!=2) return null
-        val iv=Base64.decode(parts[0],Base64.DEFAULT)
-        val ciphertext=Base64.decode(parts[1],Base64.DEFAULT)
-        val cipher=Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE,key(),GCMParameterSpec(128,iv))
-        String(cipher.doFinal(ciphertext),Charsets.UTF_8)
-    }.getOrNull()
+    fun read():String? {
+        return runCatching {
+            val stored=prefs.getString("protected",null) ?: return@runCatching null
+            val parts=stored.split(":",limit=2)
+            if(parts.size!=2) return@runCatching null
+            val iv=Base64.decode(parts[0],Base64.DEFAULT)
+            val ciphertext=Base64.decode(parts[1],Base64.DEFAULT)
+            val cipher=Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE,key(),GCMParameterSpec(128,iv))
+            String(cipher.doFinal(ciphertext),Charsets.UTF_8)
+        }.getOrNull()
+    }
     fun clear() {
         prefs.edit().remove("protected").apply()
         runCatching { keyStore.deleteEntry(alias) }
