@@ -19,3 +19,11 @@ Les instructions d'évolution historiques complètes figurent dans `docs/archive
 - Les cinq mémoires précédentes restent archivées intégralement dans `docs/archive/2026-10-11-pre-v0.5.2/`.
 - Encore à tester/améliorer : scrolling et gestes Samsung, transition spontanée d'un workflow, mémoire/réseau et signature pérenne.
 - Aucun déploiement Google Play ni future release autorisés sans nouvel accord.
+
+## DJIPIE-AUDIO-004 — nouvelle demande Fab du 17 octobre 2026
+**Demande explicite :** « Dans git dashboard créé un explorer de fichier son dans nos bibliothèques djipie ».
+
+**Autorisé :** coder l'explorateur dans le dépôt **DashbordGit** sur branche isolée ; consulter Djipie en lecture seule pour son index de médias ; compiler et tester via CI de la branche.
+**Non autorisé :** modifier Djipie ou ses médias, aspirer les archives, diffuser les sons en public, intégrer un jeton dans l'APK, fusionner automatiquement dans main, créer une Release, publier sur Google Play.
+Protéger le contrat v0.5.2 des pages Web GitHub, des permissions API, du cache de statuts et de Supertonic 3.
+Voir `docs/DASHGIT-DJIPIE-AUDIO-004.md`.
