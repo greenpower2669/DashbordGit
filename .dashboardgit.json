@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "repo": "DashbordGit",
-  "updatedAt": "2026-10-11T13:02:59+00:00",
+  "updatedAt": "2026-10-17T18:43:48+00:00",
   "runs": [
     {
-      "id": 38141407518,
+      "id": 39059365809,
       "name": "Android APK",
-      "status": "completed",
-      "conclusion": "success",
-      "head_branch": "main",
-      "html_url": "https://github.com/greenpower2669/DashbordGit/actions/runs/38141407518",
+      "status": "queued",
+      "conclusion": "",
+      "head_branch": "feature/djipie-audio-explorer-001",
+      "html_url": "https://github.com/greenpower2669/DashbordGit/actions/runs/39059365809",
       "head_commit": {
-        "message": "docs(fabcopilote): record verified v0.5.2 merge, prerelease, APK and …"
+        "message": "ci(audio): build and test private sonotheque explorer branch (no rele…"
       }
     }
   ]
