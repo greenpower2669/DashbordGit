@@ -22,3 +22,9 @@ Tests CI branche #84 verts, Chrome réel status success/failure/in_progress test
 - GitHub prerelease `v0.5.2` : https://github.com/greenpower2669/DashbordGit/releases/tag/v0.5.2 ; APK `DashbordGit-v0.5.2-debug.apk` (183 337 153 octets), `SHA256SUMS.txt` (100 octets).
 - Le fichier JSON `dashboardgit-status/.dashboardgit.json` est réellement publié et est passé de `in_progress` à `completed/success` pour le build #89.
 - APK debug uniquement, non signé par clé permanente Google Play. Le défilement et les gestes Samsung ne sont pas clos.
+
+## DJIPIE-AUDIO-004 — points à surveiller
+- Base canonique privée, Dashboard public : **un token GitHub propre à Djipie** est indispensable pour lire les ressources ; ne jamais confondre login Chrome et permission de l'API.
+- Un SHA-256 déclaré n'est pas une validation d'écoute ; les sons Sonniss restent soumis à leur licence et aux restrictions de distribution.
+- Les assets peuvent atteindre près de 400 Mio ; téléchargement explicite, SHA-256 strict, cache privé, arrêt utilisateur et erreurs visibles.
+- Aucune preuve de lecture réelle sur Samsung tant que test appareil/tokens privés non exécuté ; la CI vérifie seulement syntaxe/tests accessibles publiquement.
