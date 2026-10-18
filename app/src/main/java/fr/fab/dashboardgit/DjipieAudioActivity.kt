@@ -34,7 +34,7 @@ class DjipieAudioActivity:AppCompatActivity() {
     private var entries:List<DjipieAudioEntry> = emptyList()
     private var categoryNames=listOf("TOUS")
     private var category="TOUS"
-    private var visibleLimit=60
+    private var visibleLimit=20
     private var exportPending:DjipieAudioEntry?=null
     private var player:MediaPlayer?=null
     private var playingId:String?=null
@@ -52,8 +52,9 @@ class DjipieAudioActivity:AppCompatActivity() {
     }
     private fun button(label:String,action:()->Unit)=Button(this).apply {
         text=label
-        textSize=16f
-        minHeight=dp(48)
+        textSize=15f
+        isAllCaps=false
+        minHeight=dp(50)
         setOnClickListener { action() }
     }
 
@@ -67,9 +68,9 @@ class DjipieAudioActivity:AppCompatActivity() {
         val top=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL }
         top.addView(button("← Retour") { finish() },LinearLayout.LayoutParams(0,-2,1f))
         top.addView(button("🔐 Connexion") { promptToken() },LinearLayout.LayoutParams(0,-2,1f))
-        top.addView(button("🔄 Charger") { loadCatalogue() },LinearLayout.LayoutParams(0,-2,1f))
-        outer.addView(heading("🎧 DJIPIE · EXPLORATEUR DE SONS",23f))
+        outer.addView(heading("🎧 DJIPIE · EXPLORATEUR DE SONS",22f))
         outer.addView(top)
+        outer.addView(button("🔄 Charger le catalogue") { loadCatalogue() })
         status=TextView(this).apply {
             textSize=17f
             setPadding(dp(5),dp(10),dp(5),dp(12))
@@ -79,10 +80,10 @@ class DjipieAudioActivity:AppCompatActivity() {
         }
         outer.addView(status)
         val options=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL }
-        stop=button("⏹ Arrêter / annuler") { stopPlayback(); cancelling.set(true);
+        stop=button("⏹ Arrêter") { stopPlayback(); cancelling.set(true);
             status.text="Arrêt demandé (le téléchargement sera interrompu)." }
         options.addView(stop,LinearLayout.LayoutParams(0,-2,1f))
-        options.addView(button("🔓 Oublier le jeton") {
+        options.addView(button("🔓 Oublier") {
             AlertDialog.Builder(this)
                 .setTitle("Déconnecter Djipie ?")
                 .setMessage("Le jeton chiffré sera supprimé de ce téléphone. Les sons déjà mis en cache resteront sur l'appareil.")
@@ -115,8 +116,8 @@ class DjipieAudioActivity:AppCompatActivity() {
         results=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
         scroll.addView(results)
         outer.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
-        more=button("Afficher 60 sons supplémentaires") {
-            visibleLimit+=60
+        more=button("Afficher 20 sons supplémentaires") {
+            visibleLimit+=20
             render()
         }
         outer.addView(more)
@@ -124,7 +125,7 @@ class DjipieAudioActivity:AppCompatActivity() {
         search.addTextChangedListener(object:TextWatcher {
             override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int) {}
             override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int) {
-                visibleLimit=60
+                visibleLimit=20
                 render()
             }
             override fun afterTextChanged(s:Editable?) {}
@@ -134,7 +135,7 @@ class DjipieAudioActivity:AppCompatActivity() {
             override fun onItemSelected(parent:android.widget.AdapterView<*>?,
                                         view:View?,position:Int,id:Long) {
                 category=categoryNames.getOrElse(position) { "TOUS" }
-                visibleLimit=60
+                visibleLimit=20
                 render()
             }
         }
@@ -222,13 +223,18 @@ class DjipieAudioActivity:AppCompatActivity() {
             }
             card.addView(name)
             card.addView(TextView(this).apply {
-                text=entry.category+" · "+entry.source+" · "+
-                    entry.format.uppercase()+" · "+
-                    DjipieAudioCatalog.sizeText(entry.sizeBytes)+" · "+
-                    DjipieAudioCatalog.durationText(entry.seconds)+
-                    "\\nArchive : "+entry.originalArchive+
-                    "\\nChemin : "+entry.archivePath+
-                    "\\nÉcoute descriptive : "+entry.intensity
+                text=buildString {
+                    append(entry.category).append(" · ").append(entry.source)
+                    append(" · ").append(entry.format.uppercase())
+                    append(" · ").append(DjipieAudioCatalog.sizeText(entry.sizeBytes))
+                    append(" · ").append(DjipieAudioCatalog.durationText(entry.seconds))
+                    if(entry.originalArchive.isNotBlank() && entry.originalArchive!="null")
+                        append("\nArchive : ").append(entry.originalArchive)
+                    if(entry.archivePath.isNotBlank() && entry.archivePath!="null")
+                        append("\nChemin : ").append(entry.archivePath)
+                    if(entry.intensity.isNotBlank())
+                        append("\nÉcoute descriptive : ").append(entry.intensity)
+                }
                 textSize=15f
                 setTextColor(0xFF363647.toInt())
             })
@@ -237,9 +243,8 @@ class DjipieAudioActivity:AppCompatActivity() {
                 LinearLayout.LayoutParams(0,-2,1f))
             controls.addView(button("💾 Enregistrer") { requestExport(entry) },
                 LinearLayout.LayoutParams(0,-2,1f))
-            controls.addView(button("🔗 GitHub") { openGithub(entry) },
-                LinearLayout.LayoutParams(0,-2,1f))
             card.addView(controls)
+            card.addView(button("🔗 Ouvrir sur GitHub") { openGithub(entry) })
             results.addView(card,LinearLayout.LayoutParams(-1,-2).apply {
                 bottomMargin=dp(8)
             })
@@ -265,7 +270,11 @@ class DjipieAudioActivity:AppCompatActivity() {
 
     private fun requestExport(item:DjipieAudioEntry) {
         exportPending=item
-        val mime=if(item.format=="wav") "audio/wav" else "audio/ogg"
+        val mime=when(item.format) {
+            "wav" -> "audio/wav"
+            "mp3" -> "audio/mpeg"
+            else -> "audio/ogg"
+        }
         val intent=Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type=mime
