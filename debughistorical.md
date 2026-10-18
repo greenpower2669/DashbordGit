@@ -28,3 +28,9 @@ Tests CI branche #84 verts, Chrome réel status success/failure/in_progress test
 - Un SHA-256 déclaré n'est pas une validation d'écoute ; les sons Sonniss restent soumis à leur licence et aux restrictions de distribution.
 - Les assets peuvent atteindre près de 400 Mio ; téléchargement explicite, SHA-256 strict, cache privé, arrêt utilisateur et erreurs visibles.
 - Aucune preuve de lecture réelle sur Samsung tant que test appareil/tokens privés non exécuté ; la CI vérifie seulement syntaxe/tests accessibles publiquement.
+
+## DJIPIE-AUDIO-005 — capture Samsung : lien 404 trompeur (18/10/2026)
+- Reproduction par confrontation des données GitHub : pour `25 Church Bells, Far Distance, Rural Soundscape Distant, Hills Ridge, Spring 02.wav`, l'index conserve l'asset ID `650663951`, alors que la Release `djipie-audio-prive-non-classes` expose le même fichier à l'ID `652011955`. Le SHA-256 `49af5cedf7e5dea91efb4084f8d25cb01bbf4581bc1923e31bf5dc249a381b0f` demeure identique. Un 404 d'asset ne prouve **pas** un jeton invalide.
+- Correction : résoudre le nouvel ID à partir des métadonnées de Release actuelles, contrôler le nom, la taille et le SHA GitHub, puis vérifier la somme du fichier ; réutiliser le cache seulement après SHA.
+- La capture montre des caractères littéraux `\\n` dans les métadonnées et des libellés de boutons cassés sur petite largeur : correction dans l'écran Android.
+- À confirmer sur téléphone : lecture réelle du son, robustesse de l'auth/du réseau, ergonomie, résultat des builds et jeton existant. Ne pas déclarer la correction testée Samsung sur la seule base d'une CI verte.
