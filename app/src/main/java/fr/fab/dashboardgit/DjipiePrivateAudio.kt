@@ -71,7 +71,11 @@ class DjipieTokenVault(context:Context) {
  */
 class DjipiePrivateAudio(private val context:Context,private val vault:DjipieTokenVault) {
     companion object {
+        // Newer 553-entry catalogue lives in Djipie's validated AUDIO working branch.
+        // Never merge another repository just to make the explorer see its new sounds.
         const val CATALOGUE_PATH =
+            "https://api.github.com/repos/greenpower2669/Djipie/contents/RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json?ref=feature%2Fmusiques-cc0-directes-v1"
+        private const val FALLBACK_CATALOGUE_PATH =
             "https://api.github.com/repos/greenpower2669/Djipie/contents/RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json?ref=main"
         private const val MAX_ASSET = 450L*1024*1024
         private val CDN_HOSTS=setOf(
@@ -101,19 +105,30 @@ class DjipiePrivateAudio(private val context:Context,private val vault:DjipieTok
 
     fun loadCatalog():List<DjipieAudioEntry> {
         val token=vault.read() ?: throw IOException("Connecte d'abord Djipie.")
-        val conn=connection(CATALOGUE_PATH,token,"application/vnd.github+json")
-        try {
-            val status=conn.responseCode
-            if(status!=200) throw apiFailure(status)
-            val encoded=JSONObject(conn.inputStream.bufferedReader(Charsets.UTF_8).use {
-                it.readText()
-            }).getString("content").replace("\\s".toRegex(),"")
-            val text=String(Base64.decode(encoded,Base64.DEFAULT),Charsets.UTF_8)
-            val files=DjipieAudioCatalog.parse(text)
-            if(files.isEmpty()) throw IOException("Catalogue vide ou incompatible.")
-            return files
-        } finally { conn.disconnect() }
+        // A branch may be deleted once approved/merged; only fall back if the
+        // newer catalogue path itself returns 404, not after a token 401/403.
+        for(path in listOf(CATALOGUE_PATH,FALLBACK_CATALOGUE_PATH)) {
+            val conn=connection(path,token,"application/vnd.github+json")
+            try {
+                val status=conn.responseCode
+                if(status==404 && path==CATALOGUE_PATH) continue
+                if(status!=200) throw catalogueFailure(status)
+                val encoded=JSONObject(conn.inputStream.bufferedReader(Charsets.UTF_8).use {
+                    it.readText()
+                }).getString("content").replace("\\s".toRegex(),"")
+                val text=String(Base64.decode(encoded,Base64.DEFAULT),Charsets.UTF_8)
+                val files=DjipieAudioCatalog.parse(text)
+                if(files.isEmpty()) throw IOException("Catalogue vide ou incompatible.")
+                return files
+            } finally { conn.disconnect() }
+        }
+        throw IOException("Catalogue Djipie introuvable sur la branche de mission et sur main.")
     }
+
+    private fun catalogueFailure(code:Int):IOException = IOException(when(code) {
+        404 -> "Catalogue Djipie inaccessible (404). Vérifie l'accès Contents du jeton, ou la branche."
+        else -> apiFailure(code).message ?: "Erreur du catalogue."
+    })
 
     private fun apiFailure(code:Int):IOException = IOException(when(code) {
         401 -> "GitHub 401 : jeton invalide ou expiré."
@@ -122,6 +137,35 @@ class DjipiePrivateAudio(private val context:Context,private val vault:DjipieTok
         429 -> "GitHub 429 : limite réseau atteinte."
         else -> "GitHub HTTP $code."
     })
+
+
+    private fun sha256(file:File):String {
+        val digest=MessageDigest.getInstance("SHA-256")
+        file.inputStream().buffered().use { input ->
+            val block=ByteArray(64*1024)
+            while(true) {
+                val n=input.read(block)
+                if(n<0) break
+                digest.update(block,0,n)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
+    }
+
+    private fun resolveCurrentAssetId(item:DjipieAudioEntry,token:String):Long {
+        // The current release is authoritative; old catalogue IDs are not stable.
+        val url="https://api.github.com/repos/greenpower2669/Djipie/releases/tags/"+item.releaseTag
+        val conn=connection(url,token,"application/vnd.github+json")
+        try {
+            val code=conn.responseCode
+            if(code==404) throw IOException(
+                "Release "+item.releaseTag+" introuvable (404) : vérifie la bibliothèque Djipie, pas ton jeton."
+            )
+            if(code!=200) throw apiFailure(code)
+            val payload=conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            return DjipieReleaseResolver.resolve(item,payload)
+        } finally { conn.disconnect() }
+    }
 
     /** Playback uses a verified local cache file; never a private URL or live stream. */
     fun cacheFile(item:DjipieAudioEntry):File =
@@ -135,17 +179,21 @@ class DjipiePrivateAudio(private val context:Context,private val vault:DjipieTok
         val folder=File(context.cacheDir,"djipie_sound_cache")
         if(!folder.exists() && !folder.mkdirs()) throw IOException("Cache inaccessible.")
         val output=cacheFile(item)
-        if(output.isFile && output.length()==item.sizeBytes) {
+        // Size alone is insufficient: never reuse an unchecked cached file.
+        if(output.isFile && output.length()==item.sizeBytes &&
+            sha256(output).equals(item.sha256,ignoreCase=true)) {
             output.setLastModified(System.currentTimeMillis())
             return output
         }
+        if(output.exists()) output.delete()
         folder.listFiles()?.filter { it!=output }?.forEach { it.delete() }
         val free=StatFs(folder.absolutePath).availableBytes
         if(free < item.sizeBytes+16L*1024*1024)
             throw IOException("Espace insuffisant pour ce son : "+DjipieAudioCatalog.sizeText(item.sizeBytes))
         val partial=File(folder,output.name+".part")
         partial.delete()
-        val endpoint="https://api.github.com/repos/greenpower2669/Djipie/releases/assets/${item.assetId}"
+        val currentId=resolveCurrentAssetId(item,token)
+        val endpoint="https://api.github.com/repos/greenpower2669/Djipie/releases/assets/$"+"{currentId}"
         var location=endpoint
         var privateRequest=true
         var redirectCount=0
