@@ -37,3 +37,10 @@ Rapport : `docs/DASHGIT-DOM-SCROLL-CONSENT-003.md`.
 ## Règles de développement
 
 **Publié le 11/10/2026 :** PR #1 fusionnée dans `main` (`241319d43`), build #89 vert. GitHub **prerelease `v0.5.2`** : https://github.com/greenpower2669/DashbordGit/releases/tag/v0.5.2 ; APK **debug ARM64**, SHA256 joint. Pas de Google Play. Le défilement/les gestes restent dans `todo.md` ; toute future fusion ou release requiert un nouvel accord.
+
+
+## 🎧 Release v0.6.0 — catalogue Djipie dynamique (18/10/2026)
+- [Télécharger l'APK Android directe](https://github.com/greenpower2669/DashbordGit/releases/download/v0.6.0/DashbordGit-v0.6.0-debug.apk) (debug ARM64 ; signature de test, pas AAB Play).
+- L'explorateur recharge sur demande le catalogue canonique de **Djipie/main** (dépôt privé, jeton GitHub Contents read). 579 références lors de la publication, dont la guitare électrique et les 25 effets OGG nouveaux.
+- Les nouveaux sons seront visibles sans reconstruire l'APK une fois l'index Djipie/main mis à jour. Les assets restent dans les Releases privées Djipie et ne sont jamais embarqués dans l'APK publique.
+- Build et publication GitHub Actions réussis : [run #39139622395](https://github.com/greenpower2669/DashbordGit/actions/runs/39139622395). Lecture/jeton sur Samsung à confirmer.
