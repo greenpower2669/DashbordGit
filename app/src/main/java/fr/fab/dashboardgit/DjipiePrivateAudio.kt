@@ -71,13 +71,9 @@ class DjipieTokenVault(context:Context) {
  */
 class DjipiePrivateAudio(private val context:Context,private val vault:DjipieTokenVault) {
     companion object {
-        // Prefer the latest verified 579-entry private Djipie audio branch.
-        // Use older indexes only if a newer branch was deleted (HTTP 404).
+        // Stable catalogue endpoint: new sounds require only an update to Djipie/main.
+        // Private API access stays authenticated and user-triggered.
         const val CATALOGUE_PATH =
-            "https://api.github.com/repos/greenpower2669/Djipie/contents/RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json?ref=feature%2Ffireworks-guitar-direct-v1"
-        private const val PREVIOUS_CATALOGUE_PATH =
-            "https://api.github.com/repos/greenpower2669/Djipie/contents/RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json?ref=feature%2Fmusiques-cc0-directes-v1"
-        private const val FALLBACK_CATALOGUE_PATH =
             "https://api.github.com/repos/greenpower2669/Djipie/contents/RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json?ref=main"
         private const val MAX_ASSET = 450L*1024*1024
         private val CDN_HOSTS=setOf(
@@ -110,29 +106,19 @@ class DjipiePrivateAudio(private val context:Context,private val vault:DjipieTok
 
     fun loadCatalog():List<DjipieAudioEntry> {
         val token=vault.read() ?: throw IOException("Connecte d'abord Djipie.")
-        // A branch may be deleted once approved/merged; only fall back if the
-        // newer catalogue path itself returns 404, not after a token 401/403.
-        for(path in listOf(CATALOGUE_PATH,PREVIOUS_CATALOGUE_PATH,FALLBACK_CATALOGUE_PATH)) {
-            val conn=connection(path,token,"application/vnd.github+json")
-            try {
-                val status=conn.responseCode
-                if(status==404 && path!=FALLBACK_CATALOGUE_PATH) continue
-                if(status!=200) throw catalogueFailure(status)
-                val encoded=JSONObject(conn.inputStream.bufferedReader(Charsets.UTF_8).use {
-                    it.readText()
-                }).getString("content").replace("\\s".toRegex(),"")
-                val text=String(Base64.decode(encoded,Base64.DEFAULT),Charsets.UTF_8)
-                val files=DjipieAudioCatalog.parse(text)
-                if(files.isEmpty()) throw IOException("Catalogue vide ou incompatible.")
-                lastCatalogLabel = when(path) {
-                    CATALOGUE_PATH -> "nouveau catalogue · fireworks et guitare"
-                    PREVIOUS_CATALOGUE_PATH -> "ancien catalogue · sans nouveaux fireworks"
-                    else -> "catalogue main · historique"
-                }
-                return files
-            } finally { conn.disconnect() }
-        }
-        throw IOException("Catalogue Djipie introuvable sur les branches audio et sur main.")
+        val conn=connection(CATALOGUE_PATH,token,"application/vnd.github+json")
+        try {
+            val status=conn.responseCode
+            if(status!=200) throw catalogueFailure(status)
+            val encoded=JSONObject(conn.inputStream.bufferedReader(Charsets.UTF_8).use {
+                it.readText()
+            }).getString("content").replace("\\s".toRegex(),"")
+            val text=String(Base64.decode(encoded,Base64.DEFAULT),Charsets.UTF_8)
+            val files=DjipieAudioCatalog.parse(text)
+            if(files.isEmpty()) throw IOException("Catalogue vide ou incompatible.")
+            lastCatalogLabel = "catalogue principal Djipie · main"
+            return files
+        } finally { conn.disconnect() }
     }
 
     private fun catalogueFailure(code:Int):IOException = IOException(when(code) {
