@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "repo": "DashbordGit",
-  "updatedAt": "2026-10-18T00:57:07+00:00",
+  "updatedAt": "2026-10-18T00:57:24+00:00",
   "runs": [
     {
-      "id": 39084646725,
+      "id": 39084673802,
       "name": "Android APK",
-      "status": "in_progress",
+      "status": "queued",
       "conclusion": "",
       "head_branch": "feature/djipie-audio-explorer-001",
-      "html_url": "https://github.com/greenpower2669/DashbordGit/actions/runs/39084646725",
+      "html_url": "https://github.com/greenpower2669/DashbordGit/actions/runs/39084673802",
       "head_commit": {
-        "message": "build: préparer DashboardGit 0.5.4-dev avec catalogue Djipie actualisé"
+        "message": "fix(audio): interpolation Kotlin exacte pour l'identifiant courant de…"
       }
     }
   ]
