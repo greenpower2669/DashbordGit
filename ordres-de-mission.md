@@ -35,3 +35,5 @@ Voir `docs/DASHGIT-DJIPIE-AUDIO-004.md`.
 
 ## Autorisation explicite — 18/10/2026, DJIPIE-AUDIO-007
 Fab a validé **« Ok fait tout ça »** concernant : fusionner le catalogue Djipie à 579 sur son `main`, modifier une seule fois DashboardGit pour suivre le catalogue canonique privé `Djipie/main`, compiler/tester la nouvelle version, fusionner DashboardGit dans son `main` et publier une GitHub Release contenant l'APK directe. Cette autorisation s'applique à cette livraison uniquement. **Pas de publication Google Play/AAB ni d'intégration de sons privés dans le dépôt DashbordGit public.** Conserver un test utilisateur Samsung explicitement ouvert en TODO tant qu'il n'a pas été réalisé.
+
+**Exécution DJIPIE-AUDIO-007, 18/10/2026 :** Djipie PR #10 (puis PR documentaire #11) et DashboardGit PR #3 fusionnées à `main`; CI DashboardGit `main` #39139622395 réussie, GitHub Release `v0.6.0` publiée avec APK + SHA-256. Aucune publication Play/AAB, aucune redistribution publique des sons Djipie. Test réel Samsung conservé en TODO.

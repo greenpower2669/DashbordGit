@@ -43,3 +43,8 @@ Actions run 39137118368 SUCCESS, code dd368b1573652a8491566c66df02fc9d9ca27ce7, 
 - Conserver strictement la vérification SHA-256, le contrôle du contenu de Release, le jeton Keystore limité à Djipie et l'absence de sons privés dans l'APK publique.
 - Version Android `0.6.0` (code 16), workflow de publication GitHub Release depuis un build `main` vert. Ne pas confondre cette APK debug avec AAB signé Play.
 - Dernier test indispensable : validation Samsung avec jeton, affiche 579, recherche guitare, téléchargement et écoute.
+
+### Résultat public v0.6.0 — 18/10/2026
+- PR DashboardGit #3 fusionnée à `main` (28d86c71acdb8c23e2e35ad9de674fa6f7822fd2), après CI branche 39139377166 verte ; CI main 39139622395 complète **success**.
+- GitHub Release `v0.6.0` publiée : https://github.com/greenpower2669/DashbordGit/releases/tag/v0.6.0 ; APK brute `DashbordGit-v0.6.0-debug.apk` (183369957 octets), SHA-256 `282fdf20702f5053d8a7774d058458daeee16d9aeb33fd42a0c223014bf6e922`.
+- Dernière étape ouverte uniquement : test privé Samsung par Fab (jeton, compteur 579, guitare et OGG, lecture, export). Nouvelles entrées audio => mise à jour/fusion du catalogue Djipie/main, sans nouvelle compilation DashboardGit.

@@ -57,7 +57,7 @@ L'ancien TODO détaillé est archivé dans `docs/archive/2026-10-11-pre-v0.5.2/t
 - [x] Djipie PR #10 fusionnée : index 579 sur `main` ; aucun son privé versionné dans le dépôt DashboardGit.
 - [x] DashboardGit lit exclusivement l'URL canonique `Djipie/main` ; suppression des sélecteurs de branches figées, conservant authentification privée/SHA.
 - [x] Version 0.6.0/code 16, test de contrat du chemin, notes de Release et workflow GitHub Actions de publication depuis `main` sous condition de build vert.
-- [ ] Vérifier CI de la branche de préparation, fusion DashboardGit `main` puis CI `main` et publication v0.6.0 ; relever SHA/APK/URL après succès.
+- [x] CI branche 39139377166 **success** ; DashboardGit PR #3 fusionnée dans `main` (28d86c71) ; CI main 39139622395 **success**, Release v0.6.0 avec APK directe et SHA-256 publiée : https://github.com/greenpower2669/DashbordGit/releases/tag/v0.6.0
 - [ ] **Essai Samsung de Fab** : sauvegarde avant mise à jour debug, jeton Contents read pour Djipie, affiche 579, recherche `guitare`, `bang`, `fw_loop`, lecture WAV/OGG, export et erreurs 401/403/404.
 - [ ] Vérifier mise à jour future du catalogue Djipie après nouveau lot : affichage sans reconstruire l'APK (preuve de fonctionnement end-to-end à documenter).
 - [ ] Signature Android de distribution durable / AAB Play uniquement sur demande distincte.

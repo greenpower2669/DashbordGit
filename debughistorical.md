@@ -41,3 +41,8 @@ Tests CI branche #84 verts, Chrome réel status success/failure/in_progress test
 - Diagnostic contrôlé avant correction : Djipie `main` = 447, branche `feature/fireworks-guitar-direct-v1` = 579, 579/579 entrées acceptées par le parseur, Release privée `Fireworksetgitelec` avec guitare WAV et 25 OGG. Dash 0.5.5 CI #39137118368 verte mais test Samsung non effectué.
 - Traitement : PR Djipie #10 fusionnée sur `main`, chemin unique `Djipie/main` dans Dashboard v0.6.0 ; supprimer les replis implicites vers les index historiques (ne pas confondre 404 privé et jeton invalide). Contrôle CI et lecture Samsung à confirmer sur la version finale.
 - Attention : changement de signature debug entre APK de build peut bloquer l'installation incrémentale. Préserver les données/jetons avant désinstallation.
+
+## Publication après correction — 18/10/2026
+- DashboardGit #3 fusionnée `main` au commit `28d86c71`. Workflow main [39139622395](https://github.com/greenpower2669/DashbordGit/actions/runs/39139622395) complet **success**, y compris création GitHub Release `v0.6.0` avec APK directe + SHA256SUMS.
+- Digest de l'APK release : `282fdf20702f5053d8a7774d058458daeee16d9aeb33fd42a0c223014bf6e922`, taille 183369957 octets ; bibliothèque sonore privée toujours absente du binaire public.
+- **Non testé physiquement** : lecture sur téléphone Samsung, jeton privé, export et compatibilité de signature debug entre installations. Ce point reste une vérification utilisateur, non un échec CI.
