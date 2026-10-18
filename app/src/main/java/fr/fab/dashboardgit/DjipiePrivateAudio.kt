@@ -193,7 +193,7 @@ class DjipiePrivateAudio(private val context:Context,private val vault:DjipieTok
         val partial=File(folder,output.name+".part")
         partial.delete()
         val currentId=resolveCurrentAssetId(item,token)
-        val endpoint="https://api.github.com/repos/greenpower2669/Djipie/releases/assets/$"+"{currentId}"
+        val endpoint="https://api.github.com/repos/greenpower2669/Djipie/releases/assets/${currentId}"
         var location=endpoint
         var privateRequest=true
         var redirectCount=0
