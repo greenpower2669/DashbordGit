@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "repo": "DashbordGit",
-  "updatedAt": "2026-10-18T15:09:42+00:00",
+  "updatedAt": "2026-10-18T15:10:14+00:00",
   "runs": [
     {
-      "id": 39139198547,
+      "id": 39139251394,
       "name": "Android APK",
-      "status": "in_progress",
+      "status": "queued",
       "conclusion": "",
       "head_branch": "release/djipie-catalogue-main-v060",
-      "html_url": "https://github.com/greenpower2669/DashbordGit/actions/runs/39139198547",
+      "html_url": "https://github.com/greenpower2669/DashbordGit/actions/runs/39139251394",
       "head_commit": {
-        "message": "ci(release): terminate gh release command correctly"
+        "message": "docs(release): describe v0.6.0 dynamic Djipie main catalogue and priv…"
       }
     }
   ]
