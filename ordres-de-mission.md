@@ -19,3 +19,19 @@ Les instructions d'évolution historiques complètes figurent dans `docs/archive
 - Les cinq mémoires précédentes restent archivées intégralement dans `docs/archive/2026-10-11-pre-v0.5.2/`.
 - Encore à tester/améliorer : scrolling et gestes Samsung, transition spontanée d'un workflow, mémoire/réseau et signature pérenne.
 - Aucun déploiement Google Play ni future release autorisés sans nouvel accord.
+
+## DJIPIE-AUDIO-004 — nouvelle demande Fab du 17 octobre 2026
+**Demande explicite :** « Dans git dashboard créé un explorer de fichier son dans nos bibliothèques djipie ».
+
+**Autorisé :** coder l'explorateur dans le dépôt **DashbordGit** sur branche isolée ; consulter Djipie en lecture seule pour son index de médias ; compiler et tester via CI de la branche.
+**Non autorisé :** modifier Djipie ou ses médias, aspirer les archives, diffuser les sons en public, intégrer un jeton dans l'APK, fusionner automatiquement dans main, créer une Release, publier sur Google Play.
+Protéger le contrat v0.5.2 des pages Web GitHub, des permissions API, du cache de statuts et de Supertonic 3.
+Voir `docs/DASHGIT-DJIPIE-AUDIO-004.md`.
+
+## DJIPIE-AUDIO-005 — demande Fab du 18/10/2026
+**Autorisé :** mettre à jour l'explorateur de sons de **DashbordGit** sur la branche `feature/djipie-audio-explorer-001` (v0.5.4-dev), corriger les liens GitHub 404 liés aux IDs republiés, consommer en lecture seule le nouveau catalogue Djipie disponible, corriger l'affichage mobile, exécuter tests et build CI, documenter les résultats dans les cinq fichiers vivants du dépôt.
+**Interdictions maintenues :** aucune modification automatique de Djipie, aucune fusion de branche `main`, aucune Release/Play Store/AAB sans nouveau feu vert, aucun jeton intégré dans un APK ou log, aucune extraction en masse de sons, aucune substitution aux vérifications SHA-256 ou permissions GitHub.
+
+
+## Autorisation explicite — 18/10/2026, DJIPIE-AUDIO-007
+Fab a validé **« Ok fait tout ça »** concernant : fusionner le catalogue Djipie à 579 sur son `main`, modifier une seule fois DashboardGit pour suivre le catalogue canonique privé `Djipie/main`, compiler/tester la nouvelle version, fusionner DashboardGit dans son `main` et publier une GitHub Release contenant l'APK directe. Cette autorisation s'applique à cette livraison uniquement. **Pas de publication Google Play/AAB ni d'intégration de sons privés dans le dépôt DashbordGit public.** Conserver un test utilisateur Samsung explicitement ouvert en TODO tant qu'il n'a pas été réalisé.

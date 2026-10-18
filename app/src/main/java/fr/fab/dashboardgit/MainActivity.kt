@@ -137,6 +137,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         root.addView(title)
         root.addView(controls)
         root.addView(mosaicButton)
+        root.addView(Button(this).apply {
+            text="🎧 EXPLORATEUR DE SONS DJIPIE"
+            textSize=19f
+            contentDescription="Ouvrir les bibliothèques sonores privées Djipie"
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity,DjipieAudioActivity::class.java))
+            }
+        })
         root.addView(quotaLabel)
         root.addView(quotaProgress,LinearLayout.LayoutParams(-1,22))
         homePreview=HomeExplorerPreview(

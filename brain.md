@@ -17,3 +17,29 @@
 - **À poursuivre :** scrolling/gestes Samsung, transition spontanée de run, conso mémoire/réseau, robustesse de l'auth et des pages GitHub. Voir `todo.md`.
 
 Historique complet conservé dans `docs/archive/2026-10-11-pre-v0.5.2/` et rapports `docs/DASHGIT-*.md`.
+
+## Mission en cours — DJIPIE-AUDIO-004 (branche, non fusionnée)
+- Nouvel écran `DjipieAudioActivity.kt` depuis l'accueil ; aucune altération du scanner/mini-Chromium/Mosaïque.
+- Index de la sonothèque privée Djipie lu seulement après 🔄 Charger, avec `DjipieAudioCatalog.kt`.
+- `DjipiePrivateAudio.kt` : jeton read-only du dépôt privé chiffré via Android Keystore, fichier Release demandé individuellement par API, vérifié taille + SHA-256 et lu localement.
+- Filtres, recherche, familles, écoute, fichier sauvegardé par SAF. Compil et tests CI, audit ergonomique Samsung et authentification réelle à confirmer.
+- Numérotation de développement : **0.5.3-dev** ; main et release v0.5.2 inchangées. Voir `docs/DASHGIT-DJIPIE-AUDIO-004.md`.
+
+## Mise à jour DJIPIE-AUDIO-005 (18/10/2026, branche non fusionnée)
+- Le catalogue audio est **externe et privé** : `Djipie/feature/musiques-cc0-directes-v1` propose 553 références (dont 85 jingles Kenney et 4 WAV Meteor), tant que cette branche est ouverte ; secours sur `main` en cas de 404 de cette branche.
+- Un ID d'asset GitHub Release est **éphémère** : le téléchargement recherche l'asset présent dans la Release courante à partir du tag et du nom stricts, contrôle taille et empreinte annoncée, puis vérifie intégralement le SHA-256 téléchargé avant écoute/export. Pas de réutilisation du cache sans SHA-256.
+- Jeton conservé dans le Keystore ; aucune authentification n'est transmise aux redirections CDN ; accès uniquement après action explicite.
+- Affichage révisé pour téléphone : retours à la ligne normaux, boutons lisibles, 20 cartes par lot. Aucun résultat de test appareil n'est présumé.
+
+## DJIPIE-AUDIO-006 — fireworks et guitare (18/10/2026)
+La v0.5.2 main n'a pas l'explorateur. La branche de travail v0.5.4 lisait 553 références sans les nouvelles. Branche v0.5.5-dev `feature/djipie-fireworks-audio-v055` : priorité au catalogue Djipie `feature/fireworks-guitar-direct-v1` (579 sons vérifiés : 25 OGG + guitare WAV), repli ancienne branche 553 puis main uniquement si 404 ; les 401/403 restent des échecs d'authentification. L'interface indique la source chargée, avec recherche guidée ; test Kotlin. L'APK doit être vérifié après extraction runner et livré unitaire directement avec actions/upload-artifact@v7 archive:false (rétention 30 jours), sans Release ni merge main.
+
+### Résultat mission AUDIO-006 — Android compilé
+Actions run 39137118368 SUCCESS, code dd368b1573652a8491566c66df02fc9d9ca27ce7, compilation Android et nouveaux tests Kotlin verts. Artefact **fichier APK brut** (actions/upload-artifact@v7 archive:false), `DashbordGit-0.5.5-audio-debug.apk`, ID 12140576101, taille 183369961 octets, lien https://github.com/greenpower2669/DashbordGit/actions/runs/39137118368/artifacts/12140576101 ; validité 30 jours. Pas de Release et main inchangée ; test Samsung de l'accès au dépôt privé requis.
+
+## Mission DJIPIE-AUDIO-007 — catalogue permanent et Release 0.6.0 (18/10/2026)
+- Accord explicite Fab : fusion Djipie puis DashboardGit dans `main`, GitHub Release APK. Djipie PR #10 fusionnée ; `Djipie/main` contient le catalogue privé de 579 références (sans fichiers audio intégrés à Git).
+- `DjipiePrivateAudio.CATALOGUE_PATH` ne pointe plus sur des branches temporaires : lecture explicite et authentifiée de `Djipie/main/RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json`. La liste et les compteurs restent dynamiques : nouvelle entrée après fusion de Djipie = bouton Charger, **aucune nouvelle APK**.
+- Conserver strictement la vérification SHA-256, le contrôle du contenu de Release, le jeton Keystore limité à Djipie et l'absence de sons privés dans l'APK publique.
+- Version Android `0.6.0` (code 16), workflow de publication GitHub Release depuis un build `main` vert. Ne pas confondre cette APK debug avec AAB signé Play.
+- Dernier test indispensable : validation Samsung avec jeton, affiche 579, recherche guitare, téléchargement et écoute.

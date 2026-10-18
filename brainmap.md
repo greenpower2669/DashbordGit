@@ -14,3 +14,24 @@
 `MainActivity.kt` → `HomeExplorerPreview.kt` / `GithubDomEvidence.kt` / `GithubWebSource.kt` / `GithubApiConsentPolicy.kt` ; `MosaicActivity.kt` / `GithubMosaicTargets.kt` ; `Supertonic3Speech.kt` ; `github_dom_evidence.js`.
 
 **Chaîne validée** : branche CI #88 verte → PR #1 fusionnée (`241319d43`) → CI main #89 verte → release `v0.5.2` publiée avec APK debug/SHA256. Workflow `dashboardgit-status` actif, JSON final `completed/success`.
+
+## Travail isolé DJIPIE-AUDIO-004
+- Branche : `feature/djipie-audio-explorer-001` (non fusionnée).
+- Architecture : `DjipieAudioActivity.kt` → `DjipieAudioCatalog.kt` + `DjipiePrivateAudio.kt`.
+- Dossier sonore canonique externe **privé** : Djipie `RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json`, chargé sur demande uniquement.
+- Tests : `DjipieAudioCatalogTest.kt` ; rapport : `docs/DASHGIT-DJIPIE-AUDIO-004.md`.
+
+## DJIPIE-AUDIO-005 — catalogue et liens de Release corrigés (18/10/2026)
+- Travail isolé : `feature/djipie-audio-explorer-001`, version `0.5.4-dev`, **sans fusion sur main**.
+- `DjipiePrivateAudio.kt` : lecture du catalogue 553 références sur `Djipie/feature/musiques-cc0-directes-v1` (fallback `main` après 404 de branche), résolution d'asset par Release actuelle, nom + taille + SHA-256.
+- `DjipieReleaseResolver.kt` et `DjipieReleaseResolverTest.kt` : résolution de l'ID devenu obsolète lors des republications GitHub.
+- `DjipieAudioActivity.kt` : vrais sauts de ligne, boutons mobiles, affichage 20 sons par lot, MP3 à l'export.
+- Mémoire et audit : `docs/DASHGIT-DJIPIE-AUDIO-005.md`; tests et essai Android à suivre dans `todo.md`.
+
+- `feature/djipie-fireworks-audio-v055` : v0.5.5-dev, catalogue 579 (fireworks + guitare), source vérifiable, fallback privé sans masque auth.
+
+- Livraison `0.5.5-dev` audio : run 39137118368 succès, APK direct v7 ID 12140576101 ; 579 références Djipie, aucun merge main/Release.
+
+
+## Point d'entrée sonothèque stable (18/10/2026)
+Le Dashboard v0.6.0 consomme seulement le `catalogue_direct.json` de **Djipie/main** (dépôt privé), après clic sur Charger. Ajouter de futurs sons par mise à jour puis fusion du catalogue Djipie ; **ne jamais recompiler DashboardGit pour une simple entrée audio**. Voir `brain.md`, `todo.md` et `docs/releases/v0.6.0.md`.
