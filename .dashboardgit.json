@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "repo": "DashbordGit",
-  "updatedAt": "2026-10-18T00:58:40+00:00",
+  "updatedAt": "2026-10-18T00:58:48+00:00",
   "runs": [
     {
-      "id": 39084747039,
+      "id": 39084755442,
       "name": "Android APK",
       "status": "queued",
       "conclusion": "",
       "head_branch": "feature/djipie-audio-explorer-001",
-      "html_url": "https://github.com/greenpower2669/DashbordGit/actions/runs/39084747039",
+      "html_url": "https://github.com/greenpower2669/DashbordGit/actions/runs/39084755442",
       "head_commit": {
-        "message": "docs(audio): brainmap.md — état et règles de la correction DashboardG…"
+        "message": "docs(audio): debughistorical.md — état et règles de la correction Das…"
       }
     }
   ]
