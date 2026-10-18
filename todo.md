@@ -36,7 +36,7 @@ L'ancien TODO détaillé est archivé dans `docs/archive/2026-10-11-pre-v0.5.2/t
 - [x] Prendre en compte 553 références du catalogue Djipie de la branche `feature/musiques-cc0-directes-v1`, sans fusionner Djipie ; fallback de lecture vers `main` si branche absente.
 - [x] Corriger la présentation des chaînes littérales `\\n`, les libellés de boutons et la surcharge des cartes sur petit écran.
 - [x] Préparer `0.5.4-dev` et tests automatiques de résolution d'assets republiés.
-- [ ] Vérifier la dernière CI Android/JVM et confirmer sa réussite avant de proposer un téléchargement APK.
+- [x] CI Android + tests JVM **réussis** : [run #39084673802](https://github.com/greenpower2669/DashbordGit/actions/runs/39084673802), commit `31f850dd7e9b66366bc169172c21cfc01435fe8b` ; APK debug 0.5.4-dev extrait de l'artifact, testé comme ZIP valide et `Android package (APK)`, SHA-256 `fa488fdfa5596f9fb1a15fbc23baa182dee1bb55308d19b9aa0f5ef995d61bfa`, 183 369 961 octets, livré directement dans la conversation (sans ZIP).
 - [ ] Tester sur Samsung la lecture du fichier de cloches, au moins un Kenney, un Meteor et un MP3 ; vérifier le jeton sans le recréer, les redirections et les permissions privées.
 - [ ] Vérifier l'ergonomie réelle de l'écran, les erreurs 401/403/404, arrêt/annulation, tailles/cache et export dans le sélecteur Android.
 - [ ] Ne pas fusionner vers main, ne pas publier de GitHub Release ni de Play/AAB sans accord explicite de Fab.
