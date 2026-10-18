@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "repo": "DashbordGit",
-  "updatedAt": "2026-10-18T00:57:24+00:00",
+  "updatedAt": "2026-10-18T00:58:40+00:00",
   "runs": [
     {
-      "id": 39084673802,
+      "id": 39084747039,
       "name": "Android APK",
       "status": "queued",
       "conclusion": "",
       "head_branch": "feature/djipie-audio-explorer-001",
-      "html_url": "https://github.com/greenpower2669/DashbordGit/actions/runs/39084673802",
+      "html_url": "https://github.com/greenpower2669/DashbordGit/actions/runs/39084747039",
       "head_commit": {
-        "message": "fix(audio): interpolation Kotlin exacte pour l'identifiant courant de…"
+        "message": "docs(audio): brainmap.md — état et règles de la correction DashboardG…"
       }
     }
   ]
