@@ -31,3 +31,7 @@ Voir `docs/DASHGIT-DJIPIE-AUDIO-004.md`.
 ## DJIPIE-AUDIO-005 — demande Fab du 18/10/2026
 **Autorisé :** mettre à jour l'explorateur de sons de **DashbordGit** sur la branche `feature/djipie-audio-explorer-001` (v0.5.4-dev), corriger les liens GitHub 404 liés aux IDs republiés, consommer en lecture seule le nouveau catalogue Djipie disponible, corriger l'affichage mobile, exécuter tests et build CI, documenter les résultats dans les cinq fichiers vivants du dépôt.
 **Interdictions maintenues :** aucune modification automatique de Djipie, aucune fusion de branche `main`, aucune Release/Play Store/AAB sans nouveau feu vert, aucun jeton intégré dans un APK ou log, aucune extraction en masse de sons, aucune substitution aux vérifications SHA-256 ou permissions GitHub.
+
+
+## Autorisation explicite — 18/10/2026, DJIPIE-AUDIO-007
+Fab a validé **« Ok fait tout ça »** concernant : fusionner le catalogue Djipie à 579 sur son `main`, modifier une seule fois DashboardGit pour suivre le catalogue canonique privé `Djipie/main`, compiler/tester la nouvelle version, fusionner DashboardGit dans son `main` et publier une GitHub Release contenant l'APK directe. Cette autorisation s'applique à cette livraison uniquement. **Pas de publication Google Play/AAB ni d'intégration de sons privés dans le dépôt DashbordGit public.** Conserver un test utilisateur Samsung explicitement ouvert en TODO tant qu'il n'a pas été réalisé.
