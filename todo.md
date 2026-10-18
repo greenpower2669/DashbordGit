@@ -50,3 +50,14 @@ L'ancien TODO détaillé est archivé dans `docs/archive/2026-10-11-pre-v0.5.2/t
 - [x] CI DashboardGit run 39137118368 SUCCESS sur code dd368b1, tests Kotlin + Chromium + APK build, extraction/contrôle runner puis upload-artifact@v7 archive:false. Artefact direct `DashbordGit-0.5.5-audio-debug.apk` ID 12140576101 (183 369 961 octets), rétention 30 jours.
 - [ ] Essai Samsung avec jeton Contents read, chargement 579, recherche guitare/fw/bang, lecture audio réelle.
 - [ ] Aucun merge main, Release, Play sans accord.
+
+
+## DJIPIE-AUDIO-007 — catalogue canonique et GitHub Release 0.6.0 (18/10/2026)
+- [x] Autorisation explicite de Fab pour les deux fusions `main` et la GitHub Release APK.
+- [x] Djipie PR #10 fusionnée : index 579 sur `main` ; aucun son privé versionné dans le dépôt DashboardGit.
+- [x] DashboardGit lit exclusivement l'URL canonique `Djipie/main` ; suppression des sélecteurs de branches figées, conservant authentification privée/SHA.
+- [x] Version 0.6.0/code 16, test de contrat du chemin, notes de Release et workflow GitHub Actions de publication depuis `main` sous condition de build vert.
+- [ ] Vérifier CI de la branche de préparation, fusion DashboardGit `main` puis CI `main` et publication v0.6.0 ; relever SHA/APK/URL après succès.
+- [ ] **Essai Samsung de Fab** : sauvegarde avant mise à jour debug, jeton Contents read pour Djipie, affiche 579, recherche `guitare`, `bang`, `fw_loop`, lecture WAV/OGG, export et erreurs 401/403/404.
+- [ ] Vérifier mise à jour future du catalogue Djipie après nouveau lot : affichage sans reconstruire l'APK (preuve de fonctionnement end-to-end à documenter).
+- [ ] Signature Android de distribution durable / AAB Play uniquement sur demande distincte.
