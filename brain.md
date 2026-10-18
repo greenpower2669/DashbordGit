@@ -24,3 +24,9 @@ Historique complet conservé dans `docs/archive/2026-10-11-pre-v0.5.2/` et rappo
 - `DjipiePrivateAudio.kt` : jeton read-only du dépôt privé chiffré via Android Keystore, fichier Release demandé individuellement par API, vérifié taille + SHA-256 et lu localement.
 - Filtres, recherche, familles, écoute, fichier sauvegardé par SAF. Compil et tests CI, audit ergonomique Samsung et authentification réelle à confirmer.
 - Numérotation de développement : **0.5.3-dev** ; main et release v0.5.2 inchangées. Voir `docs/DASHGIT-DJIPIE-AUDIO-004.md`.
+
+## Mise à jour DJIPIE-AUDIO-005 (18/10/2026, branche non fusionnée)
+- Le catalogue audio est **externe et privé** : `Djipie/feature/musiques-cc0-directes-v1` propose 553 références (dont 85 jingles Kenney et 4 WAV Meteor), tant que cette branche est ouverte ; secours sur `main` en cas de 404 de cette branche.
+- Un ID d'asset GitHub Release est **éphémère** : le téléchargement recherche l'asset présent dans la Release courante à partir du tag et du nom stricts, contrôle taille et empreinte annoncée, puis vérifie intégralement le SHA-256 téléchargé avant écoute/export. Pas de réutilisation du cache sans SHA-256.
+- Jeton conservé dans le Keystore ; aucune authentification n'est transmise aux redirections CDN ; accès uniquement après action explicite.
+- Affichage révisé pour téléphone : retours à la ligne normaux, boutons lisibles, 20 cartes par lot. Aucun résultat de test appareil n'est présumé.
