@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "repo": "DashbordGit",
-  "updatedAt": "2026-10-18T14:43:47+00:00",
+  "updatedAt": "2026-10-18T15:09:24+00:00",
   "runs": [
     {
-      "id": 39137118368,
+      "id": 39139185477,
       "name": "Android APK",
-      "status": "completed",
-      "conclusion": "success",
-      "head_branch": "feature/djipie-fireworks-audio-v055",
-      "html_url": "https://github.com/greenpower2669/DashbordGit/actions/runs/39137118368",
+      "status": "queued",
+      "conclusion": "",
+      "head_branch": "release/djipie-catalogue-main-v060",
+      "html_url": "https://github.com/greenpower2669/DashbordGit/actions/runs/39139185477",
       "head_commit": {
-        "message": "feat: DashboardGit 0.5.5 audio explorer updated for 579 sounds, raw APK"
+        "message": "ci(release): build direct APK and publish v0.6.0 from passing main build"
       }
     }
   ]
