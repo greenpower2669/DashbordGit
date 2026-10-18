@@ -31,3 +31,7 @@
 - `feature/djipie-fireworks-audio-v055` : v0.5.5-dev, catalogue 579 (fireworks + guitare), source vérifiable, fallback privé sans masque auth.
 
 - Livraison `0.5.5-dev` audio : run 39137118368 succès, APK direct v7 ID 12140576101 ; 579 références Djipie, aucun merge main/Release.
+
+
+## Point d'entrée sonothèque stable (18/10/2026)
+Le Dashboard v0.6.0 consomme seulement le `catalogue_direct.json` de **Djipie/main** (dépôt privé), après clic sur Charger. Ajouter de futurs sons par mise à jour puis fusion du catalogue Djipie ; **ne jamais recompiler DashboardGit pour une simple entrée audio**. Voir `brain.md`, `todo.md` et `docs/releases/v0.6.0.md`.
