@@ -104,7 +104,7 @@ class DjipieAudioActivity:AppCompatActivity() {
         }
         outer.addView(folders)
         search=EditText(this).apply {
-            hint="🔎 Rechercher un son, un mot ou un projet"
+            hint="🔎 Ex. fireworks, bang, cannon, guitare"
             textSize=18f
             isSingleLine=true
             contentDescription="Rechercher dans la sonothèque privée"
@@ -184,7 +184,7 @@ class DjipieAudioActivity:AppCompatActivity() {
                     entries=fetched
                     renderFolders()
                     render()
-                    status.text="✅ Catalogue chargé : ${fetched.size} sons, sans téléchargement audio."
+                    status.text="✅ ${fetched.size} sons · ${source.lastCatalogLabel}. Recherches : fireworks, bang, cannon, guitare. Aucun son téléchargé automatiquement."
                 }
             } catch(e:Exception) {
                 runOnUiThread { if(!closed)status.text="⚠ "+e.message.orEmpty() }
