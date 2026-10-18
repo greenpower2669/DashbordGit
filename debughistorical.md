@@ -34,3 +34,10 @@ Tests CI branche #84 verts, Chrome réel status success/failure/in_progress test
 - Correction : résoudre le nouvel ID à partir des métadonnées de Release actuelles, contrôler le nom, la taille et le SHA GitHub, puis vérifier la somme du fichier ; réutiliser le cache seulement après SHA.
 - La capture montre des caractères littéraux `\\n` dans les métadonnées et des libellés de boutons cassés sur petite largeur : correction dans l'écran Android.
 - À confirmer sur téléphone : lecture réelle du son, robustesse de l'auth/du réseau, ergonomie, résultat des builds et jeton existant. Ne pas déclarer la correction testée Samsung sur la seule base d'une CI verte.
+
+
+## Architecture catalogue — correctif de fond 18/10/2026
+- Symptôme : les fichiers récents (guitare électrique, fireworks) étaient invisibles parce que l'APK v0.5.2 n'avait pas l'explorateur, puis les builds suivants ciblaient plusieurs branches 447/553/579. La cible changeait à chaque lot.
+- Diagnostic contrôlé avant correction : Djipie `main` = 447, branche `feature/fireworks-guitar-direct-v1` = 579, 579/579 entrées acceptées par le parseur, Release privée `Fireworksetgitelec` avec guitare WAV et 25 OGG. Dash 0.5.5 CI #39137118368 verte mais test Samsung non effectué.
+- Traitement : PR Djipie #10 fusionnée sur `main`, chemin unique `Djipie/main` dans Dashboard v0.6.0 ; supprimer les replis implicites vers les index historiques (ne pas confondre 404 privé et jeton invalide). Contrôle CI et lecture Samsung à confirmer sur la version finale.
+- Attention : changement de signature debug entre APK de build peut bloquer l'installation incrémentale. Préserver les données/jetons avant désinstallation.
