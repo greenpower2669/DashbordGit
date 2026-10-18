@@ -105,6 +105,9 @@ class DjipiePrivateAudio(private val context:Context,private val vault:DjipieTok
         }
     }
 
+    @Volatile var lastCatalogLabel:String = "aucun catalogue chargé"
+        private set
+
     fun loadCatalog():List<DjipieAudioEntry> {
         val token=vault.read() ?: throw IOException("Connecte d'abord Djipie.")
         // A branch may be deleted once approved/merged; only fall back if the
@@ -121,6 +124,11 @@ class DjipiePrivateAudio(private val context:Context,private val vault:DjipieTok
                 val text=String(Base64.decode(encoded,Base64.DEFAULT),Charsets.UTF_8)
                 val files=DjipieAudioCatalog.parse(text)
                 if(files.isEmpty()) throw IOException("Catalogue vide ou incompatible.")
+                lastCatalogLabel = when(path) {
+                    CATALOGUE_PATH -> "nouveau catalogue · fireworks et guitare"
+                    PREVIOUS_CATALOGUE_PATH -> "ancien catalogue · sans nouveaux fireworks"
+                    else -> "catalogue main · historique"
+                }
                 return files
             } finally { conn.disconnect() }
         }
