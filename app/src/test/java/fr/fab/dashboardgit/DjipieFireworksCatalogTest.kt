@@ -47,4 +47,11 @@ class DjipieFireworksCatalogTest {
         invalid.getJSONObject("fichier_direct").put("sha256","not-a-sha")
         assertEquals(1,DjipieAudioCatalog.parse(JSONArray().put(one).put(dup).put(invalid).toString()).size)
     }
+    @Test fun catalogueEndpointIsStableOnDjipieMain() {
+        assertEquals(
+            "https://api.github.com/repos/greenpower2669/Djipie/contents/RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json?ref=main",
+            DjipiePrivateAudio.CATALOGUE_PATH
+        )
+    }
+
 }
