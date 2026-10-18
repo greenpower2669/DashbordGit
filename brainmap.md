@@ -27,3 +27,5 @@
 - `DjipieReleaseResolver.kt` et `DjipieReleaseResolverTest.kt` : résolution de l'ID devenu obsolète lors des republications GitHub.
 - `DjipieAudioActivity.kt` : vrais sauts de ligne, boutons mobiles, affichage 20 sons par lot, MP3 à l'export.
 - Mémoire et audit : `docs/DASHGIT-DJIPIE-AUDIO-005.md`; tests et essai Android à suivre dans `todo.md`.
+
+- `feature/djipie-fireworks-audio-v055` : v0.5.5-dev, catalogue 579 (fireworks + guitare), source vérifiable, fallback privé sans masque auth.

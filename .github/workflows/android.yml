@@ -2,7 +2,7 @@ name: Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, feature/web-first-supertonic3-v1, feature/dashgit-chromium-mosaic-001, feature/dashgit-home-explorer-002, feature/dashgit-dom-scroll-consent-003, feature/djipie-audio-explorer-001 ]
+    branches: [ main, feature/web-first-supertonic3-v1, feature/dashgit-chromium-mosaic-001, feature/dashgit-home-explorer-002, feature/dashgit-dom-scroll-consent-003, feature/djipie-audio-explorer-001, feature/djipie-fireworks-audio-v055 ]
 permissions:
   contents: read
   actions: read
@@ -83,6 +83,29 @@ jobs:
         with:
           name: DashbordGit-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+      - name: Verify installable direct APK after temporary unpacking
+        if: github.ref == 'refs/heads/feature/djipie-fireworks-audio-v055'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dash-audio/packed" "$RUNNER_TEMP/dash-audio/unpacked" dist
+          cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/dash-audio/packed/DashbordGit-0.5.5-audio-debug.apk"
+          (cd "$RUNNER_TEMP/dash-audio/packed" && zip -0 -q "$RUNNER_TEMP/dash-audio/transport.zip" DashbordGit-0.5.5-audio-debug.apk)
+          unzip -q "$RUNNER_TEMP/dash-audio/transport.zip" -d "$RUNNER_TEMP/dash-audio/unpacked"
+          cmp -s app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/dash-audio/unpacked/DashbordGit-0.5.5-audio-debug.apk"
+          unzip -tqq "$RUNNER_TEMP/dash-audio/unpacked/DashbordGit-0.5.5-audio-debug.apk"
+          unzip -Z1 "$RUNNER_TEMP/dash-audio/unpacked/DashbordGit-0.5.5-audio-debug.apk" | grep -Fx 'AndroidManifest.xml'
+          cp "$RUNNER_TEMP/dash-audio/unpacked/DashbordGit-0.5.5-audio-debug.apk" dist/
+          sha256sum dist/DashbordGit-0.5.5-audio-debug.apk | tee dist/SHA256SUMS.txt
+      - name: Deliver single APK unzipped via GitHub artifact v7
+        if: github.ref == 'refs/heads/feature/djipie-fireworks-audio-v055'
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/DashbordGit-0.5.5-audio-debug.apk
+          archive: false
+          if-no-files-found: error
+          retention-days: 30
+
 
   publish_release:
     name: GitHub prerelease v0.5.2

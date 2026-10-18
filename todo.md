@@ -40,3 +40,12 @@ L'ancien TODO détaillé est archivé dans `docs/archive/2026-10-11-pre-v0.5.2/t
 - [ ] Tester sur Samsung la lecture du fichier de cloches, au moins un Kenney, un Meteor et un MP3 ; vérifier le jeton sans le recréer, les redirections et les permissions privées.
 - [ ] Vérifier l'ergonomie réelle de l'écran, les erreurs 401/403/404, arrêt/annulation, tailles/cache et export dans le sélecteur Android.
 - [ ] Ne pas fusionner vers main, ne pas publier de GitHub Release ni de Play/AAB sans accord explicite de Fab.
+
+## DJIPIE-AUDIO-006 — nouveaux sons dans l'explorateur
+- [x] Djipie 25 OGG + guitare, catalogue 579 : CI 39136622479 SUCCESS.
+- [x] Source prioritaire vers Djipie/feature/fireworks-guitar-direct-v1, ancien 553 et main en secours 404 ; erreurs 401/403 intactes.
+- [x] UI précise la source et propose recherches bang, cannon, fw_loop, guitare.
+- [x] Tests Kotlin de lecture et filtre des nouvelles entrées.
+- [x] Livraison APK simple sans ZIP via actions/upload-artifact@v7 archive:false, extraction et vérification RUNNER_TEMP.
+- [ ] CI GitHub et APK v0.5.5 à vérifier puis essai Samsung, jeton Contents read et lecture réelle.
+- [ ] Aucun merge main, Release, Play sans accord.

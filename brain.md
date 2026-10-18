@@ -30,3 +30,6 @@ Historique complet conservé dans `docs/archive/2026-10-11-pre-v0.5.2/` et rappo
 - Un ID d'asset GitHub Release est **éphémère** : le téléchargement recherche l'asset présent dans la Release courante à partir du tag et du nom stricts, contrôle taille et empreinte annoncée, puis vérifie intégralement le SHA-256 téléchargé avant écoute/export. Pas de réutilisation du cache sans SHA-256.
 - Jeton conservé dans le Keystore ; aucune authentification n'est transmise aux redirections CDN ; accès uniquement après action explicite.
 - Affichage révisé pour téléphone : retours à la ligne normaux, boutons lisibles, 20 cartes par lot. Aucun résultat de test appareil n'est présumé.
+
+## DJIPIE-AUDIO-006 — fireworks et guitare (18/10/2026)
+La v0.5.2 main n'a pas l'explorateur. La branche de travail v0.5.4 lisait 553 références sans les nouvelles. Branche v0.5.5-dev `feature/djipie-fireworks-audio-v055` : priorité au catalogue Djipie `feature/fireworks-guitar-direct-v1` (579 sons vérifiés : 25 OGG + guitare WAV), repli ancienne branche 553 puis main uniquement si 404 ; les 401/403 restent des échecs d'authentification. L'interface indique la source chargée, avec recherche guidée ; test Kotlin. L'APK doit être vérifié après extraction runner et livré unitaire directement avec actions/upload-artifact@v7 archive:false (rétention 30 jours), sans Release ni merge main.
