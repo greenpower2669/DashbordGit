@@ -47,5 +47,6 @@ L'ancien TODO détaillé est archivé dans `docs/archive/2026-10-11-pre-v0.5.2/t
 - [x] UI précise la source et propose recherches bang, cannon, fw_loop, guitare.
 - [x] Tests Kotlin de lecture et filtre des nouvelles entrées.
 - [x] Livraison APK simple sans ZIP via actions/upload-artifact@v7 archive:false, extraction et vérification RUNNER_TEMP.
-- [ ] CI GitHub et APK v0.5.5 à vérifier puis essai Samsung, jeton Contents read et lecture réelle.
+- [x] CI DashboardGit run 39137118368 SUCCESS sur code dd368b1, tests Kotlin + Chromium + APK build, extraction/contrôle runner puis upload-artifact@v7 archive:false. Artefact direct `DashbordGit-0.5.5-audio-debug.apk` ID 12140576101 (183 369 961 octets), rétention 30 jours.
+- [ ] Essai Samsung avec jeton Contents read, chargement 579, recherche guitare/fw/bang, lecture audio réelle.
 - [ ] Aucun merge main, Release, Play sans accord.

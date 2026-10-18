@@ -33,3 +33,6 @@ Historique complet conservé dans `docs/archive/2026-10-11-pre-v0.5.2/` et rappo
 
 ## DJIPIE-AUDIO-006 — fireworks et guitare (18/10/2026)
 La v0.5.2 main n'a pas l'explorateur. La branche de travail v0.5.4 lisait 553 références sans les nouvelles. Branche v0.5.5-dev `feature/djipie-fireworks-audio-v055` : priorité au catalogue Djipie `feature/fireworks-guitar-direct-v1` (579 sons vérifiés : 25 OGG + guitare WAV), repli ancienne branche 553 puis main uniquement si 404 ; les 401/403 restent des échecs d'authentification. L'interface indique la source chargée, avec recherche guidée ; test Kotlin. L'APK doit être vérifié après extraction runner et livré unitaire directement avec actions/upload-artifact@v7 archive:false (rétention 30 jours), sans Release ni merge main.
+
+### Résultat mission AUDIO-006 — Android compilé
+Actions run 39137118368 SUCCESS, code dd368b1573652a8491566c66df02fc9d9ca27ce7, compilation Android et nouveaux tests Kotlin verts. Artefact **fichier APK brut** (actions/upload-artifact@v7 archive:false), `DashbordGit-0.5.5-audio-debug.apk`, ID 12140576101, taille 183369961 octets, lien https://github.com/greenpower2669/DashbordGit/actions/runs/39137118368/artifacts/12140576101 ; validité 30 jours. Pas de Release et main inchangée ; test Samsung de l'accès au dépôt privé requis.

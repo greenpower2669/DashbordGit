@@ -29,3 +29,5 @@
 - Mémoire et audit : `docs/DASHGIT-DJIPIE-AUDIO-005.md`; tests et essai Android à suivre dans `todo.md`.
 
 - `feature/djipie-fireworks-audio-v055` : v0.5.5-dev, catalogue 579 (fireworks + guitare), source vérifiable, fallback privé sans masque auth.
+
+- Livraison `0.5.5-dev` audio : run 39137118368 succès, APK direct v7 ID 12140576101 ; 579 références Djipie, aucun merge main/Release.
