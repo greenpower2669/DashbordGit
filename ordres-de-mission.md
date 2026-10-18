@@ -27,3 +27,7 @@ Les instructions d'évolution historiques complètes figurent dans `docs/archive
 **Non autorisé :** modifier Djipie ou ses médias, aspirer les archives, diffuser les sons en public, intégrer un jeton dans l'APK, fusionner automatiquement dans main, créer une Release, publier sur Google Play.
 Protéger le contrat v0.5.2 des pages Web GitHub, des permissions API, du cache de statuts et de Supertonic 3.
 Voir `docs/DASHGIT-DJIPIE-AUDIO-004.md`.
+
+## DJIPIE-AUDIO-005 — demande Fab du 18/10/2026
+**Autorisé :** mettre à jour l'explorateur de sons de **DashbordGit** sur la branche `feature/djipie-audio-explorer-001` (v0.5.4-dev), corriger les liens GitHub 404 liés aux IDs republiés, consommer en lecture seule le nouveau catalogue Djipie disponible, corriger l'affichage mobile, exécuter tests et build CI, documenter les résultats dans les cinq fichiers vivants du dépôt.
+**Interdictions maintenues :** aucune modification automatique de Djipie, aucune fusion de branche `main`, aucune Release/Play Store/AAB sans nouveau feu vert, aucun jeton intégré dans un APK ou log, aucune extraction en masse de sons, aucune substitution aux vérifications SHA-256 ou permissions GitHub.
