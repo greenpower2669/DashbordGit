@@ -71,9 +71,11 @@ class DjipieTokenVault(context:Context) {
  */
 class DjipiePrivateAudio(private val context:Context,private val vault:DjipieTokenVault) {
     companion object {
-        // Newer 553-entry catalogue lives in Djipie's validated AUDIO working branch.
-        // Never merge another repository just to make the explorer see its new sounds.
+        // Prefer the latest verified 579-entry private Djipie audio branch.
+        // Use older indexes only if a newer branch was deleted (HTTP 404).
         const val CATALOGUE_PATH =
+            "https://api.github.com/repos/greenpower2669/Djipie/contents/RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json?ref=feature%2Ffireworks-guitar-direct-v1"
+        private const val PREVIOUS_CATALOGUE_PATH =
             "https://api.github.com/repos/greenpower2669/Djipie/contents/RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json?ref=feature%2Fmusiques-cc0-directes-v1"
         private const val FALLBACK_CATALOGUE_PATH =
             "https://api.github.com/repos/greenpower2669/Djipie/contents/RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json?ref=main"
@@ -107,11 +109,11 @@ class DjipiePrivateAudio(private val context:Context,private val vault:DjipieTok
         val token=vault.read() ?: throw IOException("Connecte d'abord Djipie.")
         // A branch may be deleted once approved/merged; only fall back if the
         // newer catalogue path itself returns 404, not after a token 401/403.
-        for(path in listOf(CATALOGUE_PATH,FALLBACK_CATALOGUE_PATH)) {
+        for(path in listOf(CATALOGUE_PATH,PREVIOUS_CATALOGUE_PATH,FALLBACK_CATALOGUE_PATH)) {
             val conn=connection(path,token,"application/vnd.github+json")
             try {
                 val status=conn.responseCode
-                if(status==404 && path==CATALOGUE_PATH) continue
+                if(status==404 && path!=FALLBACK_CATALOGUE_PATH) continue
                 if(status!=200) throw catalogueFailure(status)
                 val encoded=JSONObject(conn.inputStream.bufferedReader(Charsets.UTF_8).use {
                     it.readText()
@@ -122,7 +124,7 @@ class DjipiePrivateAudio(private val context:Context,private val vault:DjipieTok
                 return files
             } finally { conn.disconnect() }
         }
-        throw IOException("Catalogue Djipie introuvable sur la branche de mission et sur main.")
+        throw IOException("Catalogue Djipie introuvable sur les branches audio et sur main.")
     }
 
     private fun catalogueFailure(code:Int):IOException = IOException(when(code) {
