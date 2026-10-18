@@ -36,3 +36,10 @@ La v0.5.2 main n'a pas l'explorateur. La branche de travail v0.5.4 lisait 553 r�
 
 ### Résultat mission AUDIO-006 — Android compilé
 Actions run 39137118368 SUCCESS, code dd368b1573652a8491566c66df02fc9d9ca27ce7, compilation Android et nouveaux tests Kotlin verts. Artefact **fichier APK brut** (actions/upload-artifact@v7 archive:false), `DashbordGit-0.5.5-audio-debug.apk`, ID 12140576101, taille 183369961 octets, lien https://github.com/greenpower2669/DashbordGit/actions/runs/39137118368/artifacts/12140576101 ; validité 30 jours. Pas de Release et main inchangée ; test Samsung de l'accès au dépôt privé requis.
+
+## Mission DJIPIE-AUDIO-007 — catalogue permanent et Release 0.6.0 (18/10/2026)
+- Accord explicite Fab : fusion Djipie puis DashboardGit dans `main`, GitHub Release APK. Djipie PR #10 fusionnée ; `Djipie/main` contient le catalogue privé de 579 références (sans fichiers audio intégrés à Git).
+- `DjipiePrivateAudio.CATALOGUE_PATH` ne pointe plus sur des branches temporaires : lecture explicite et authentifiée de `Djipie/main/RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json`. La liste et les compteurs restent dynamiques : nouvelle entrée après fusion de Djipie = bouton Charger, **aucune nouvelle APK**.
+- Conserver strictement la vérification SHA-256, le contrôle du contenu de Release, le jeton Keystore limité à Djipie et l'absence de sons privés dans l'APK publique.
+- Version Android `0.6.0` (code 16), workflow de publication GitHub Release depuis un build `main` vert. Ne pas confondre cette APK debug avec AAB signé Play.
+- Dernier test indispensable : validation Samsung avec jeton, affiche 579, recherche guitare, téléchargement et écoute.
