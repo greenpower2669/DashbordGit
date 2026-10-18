@@ -20,3 +20,10 @@
 - Architecture : `DjipieAudioActivity.kt` → `DjipieAudioCatalog.kt` + `DjipiePrivateAudio.kt`.
 - Dossier sonore canonique externe **privé** : Djipie `RESSOURCES_PARTAGEES/AUDIO/CATALOGUE/catalogue_direct.json`, chargé sur demande uniquement.
 - Tests : `DjipieAudioCatalogTest.kt` ; rapport : `docs/DASHGIT-DJIPIE-AUDIO-004.md`.
+
+## DJIPIE-AUDIO-005 — catalogue et liens de Release corrigés (18/10/2026)
+- Travail isolé : `feature/djipie-audio-explorer-001`, version `0.5.4-dev`, **sans fusion sur main**.
+- `DjipiePrivateAudio.kt` : lecture du catalogue 553 références sur `Djipie/feature/musiques-cc0-directes-v1` (fallback `main` après 404 de branche), résolution d'asset par Release actuelle, nom + taille + SHA-256.
+- `DjipieReleaseResolver.kt` et `DjipieReleaseResolverTest.kt` : résolution de l'ID devenu obsolète lors des republications GitHub.
+- `DjipieAudioActivity.kt` : vrais sauts de ligne, boutons mobiles, affichage 20 sons par lot, MP3 à l'export.
+- Mémoire et audit : `docs/DASHGIT-DJIPIE-AUDIO-005.md`; tests et essai Android à suivre dans `todo.md`.
